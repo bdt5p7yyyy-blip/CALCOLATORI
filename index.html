@@ -242,8 +242,7 @@ function calcBond() {
   const cedEur = $("oCedTipo").value === "pct" ? nom * ced / 100 : ced;
   const capInv = $("oPrezzoTipo").value === "pct" ? nom * pz / 100 : pz;
   const rend = cedEur / capInv * 100;
-  const diff = capInv - nom;
-  $("oOut").innerHTML =
+  const diff = const diff = nom - capInv;  $("oOut").innerHTML =
     card("<b>Rendimento immediato</b>", nf(rend) + " %", "neutral") +
     card("Cedola incassata all'anno", nf(cedEur) + " €") +
     card("Capitale investito (prezzo)", nf(capInv) + " €") +
