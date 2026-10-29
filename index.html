@@ -451,7 +451,35 @@ function drawChart(l1, l2, tot, S0, xMax, bes, pnl0) {
     '</svg>';
 }
 
-/* ---------- Export PDF (via stampa) ---------- */
+/* ---------- Export PDF (generato in JS puro, via menu Condividi) ---------- */
+function pdfEsc(s) { return String(s).replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)"); }
+function buildPDF(rows) {
+  // rows: [{x, y, t, size, bold}] — pagina A4 (595x842), testo Helvetica
+  let ops = "BT\n";
+  rows.forEach(r => {
+    ops += "/" + (r.bold ? "F2" : "F1") + " " + (r.size || 9) + " Tf 1 0 0 1 " +
+           r.x.toFixed(1) + " " + r.y.toFixed(1) + " Tm (" + pdfEsc(r.t) + ") Tj\n";
+  });
+  ops += "ET";
+  const objs = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
+    "<< /Length " + ops.length + " >>\nstream\n" + ops + "\nendstream"
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offs = [];
+  objs.forEach((o, i) => { offs.push(pdf.length); pdf += (i + 1) + " 0 obj\n" + o + "\nendobj\n"; });
+  const xrefPos = pdf.length;
+  pdf += "xref\n0 " + (objs.length + 1) + "\n0000000000 65535 f \n";
+  offs.forEach(o => { pdf += String(o).padStart(10, "0") + " 00000 n \n"; });
+  pdf += "trailer\n<< /Size " + (objs.length + 1) + " /Root 1 0 R >>\nstartxref\n" + xrefPos + "\n%%EOF";
+  const bytes = new Uint8Array(pdf.length);
+  for (let i = 0; i < pdf.length; i++) bytes[i] = pdf.charCodeAt(i) & 0xFF;
+  return bytes;
+}
 function exportPDF() {
   const S0 = num("s0");
   const l1 = readLeg("l1"), l2 = readLeg("l2");
@@ -486,35 +514,66 @@ function exportPDF() {
 
   const variaz = [20, 10, 0, -10, -20, -30, -40, -50];
   const dec = S0 >= 20 ? 2 : 4;
-  let rows = "";
-  variaz.forEach(v => {
-    const S = S0 * (1 + v / 100), t = tot(S);
-    rows += '<tr><td>' + (v > 0 ? "+" : "") + v + '%</td><td>' + nf(S, dec) + '</td>' +
-      '<td>' + fmt(legPnl(l1, S)) + '</td><td>' + fmt(legPnl(l2, S)) + '</td>' +
-      '<td>' + fmt(t) + '</td></tr>';
-  });
   const now = new Date();
   const dataOra = now.toLocaleDateString("it-IT") + " " + now.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
 
-  $("printArea").innerHTML =
-    '<h1>📈 Riassunto strategia opzioni</h1>' +
-    '<div class="sub">Generato il ' + dataOra + ' — valori a scadenza (valore tempo escluso)</div>' +
-    '<table><tr><th>Gamba</th><th>Tipo</th><th>Verso</th><th>Strike</th><th>Premio str.</th><th>N.</th><th>Parità P</th></tr>' +
-    legs.map((l, i) => '<tr><td>Gamba ' + (i + 1) + '</td><td>' + (l.tipo === "put" ? "Put" : "Call") + '</td><td>' +
-      (l.verso === "buy" ? "Acquisto" : "Vendita") + '</td><td>' + nf(l.K, dec) + '</td><td>' + nf(l.prem, 4) +
-      '</td><td>' + nf(l.N, 0) + '</td><td>' + nf(l.P, 4) + '</td></tr>').join("") +
-    '</table>' +
-    '<div class="cards">' +
-    '<div><b>Sottostante attuale S₀:</b> ' + nf(S0, dec) + '</div>' +
-    '<div><b>P/L totale a S₀:</b> ' + fmt(tot(S0)) + '</div>' +
-    '<div><b>Premi netti:</b> ' + fmt(netPremi) + '</div>' +
-    '<div><b>Max profitto:</b> ' + fmt(maxY) + '</div>' +
-    '<div><b>Max perdita:</b> ' + fmt(minY) + '</div>' +
-    '<div><b>Break-even:</b> ' + (bes.length ? bes.map(b => nf(b, 4)).join(" · ") : "nessuno") + '</div>' +
-    '</div>' +
-    '<table><tr><th>Variazione S</th><th>S a scadenza</th><th>Gamba 1</th><th>Gamba 2</th><th>P/L totale</th></tr>' + rows + '</table>' +
-    '<div class="sub">Rendimento immediato obbligazioni e payoff singolo: app Calcolatori. Documento informativo generato automaticamente; non costituisce consulenza finanziaria.</div>';
-  window.print();
+  const rows = [];
+  rows.push({ x: 40, y: 812, t: "Riassunto strategia opzioni", size: 14, bold: true });
+  rows.push({ x: 40, y: 796, t: "Generato il " + dataOra + " - valori a scadenza (valore tempo escluso)", size: 8 });
+
+  let y = 774;
+  const hcell = (x, t) => rows.push({ x: x, y: y, t: t, size: 8, bold: true });
+  hcell(40, "Gamba"); hcell(100, "Tipo"); hcell(145, "Verso"); hcell(215, "Strike");
+  hcell(275, "Premio str."); hcell(345, "N."); hcell(390, "Parita P");
+  y -= 13;
+  legs.forEach((l, i) => {
+    const cell = (x, t) => rows.push({ x: x, y: y, t: t, size: 8 });
+    cell(40, "Gamba " + (i + 1));
+    cell(100, l.tipo === "put" ? "Put" : "Call");
+    cell(145, l.verso === "buy" ? "Acquisto" : "Vendita");
+    cell(215, nf(l.K, dec));
+    cell(275, nf(l.prem, 4));
+    cell(345, nf(l.N, 0));
+    cell(390, nf(l.P, 4));
+    y -= 13;
+  });
+  y -= 6;
+  ["Sottostante attuale S0: " + nf(S0, dec),
+   "P/L totale a S0: " + fmt(tot(S0)),
+   "Premi netti: " + fmt(netPremi),
+   "Max profitto: " + fmt(maxY),
+   "Max perdita: " + fmt(minY),
+   "Break-even: " + (bes.length ? bes.map(b => nf(b, 4)).join(" ; ") : "nessuno")
+  ].forEach(t => { rows.push({ x: 40, y: y, t: t, size: 9, bold: true }); y -= 14; });
+  y -= 6;
+  hcell(40, "Variaz. S"); hcell(110, "S scadenza"); hcell(190, "Gamba 1"); hcell(270, "Gamba 2"); hcell(350, "P/L totale");
+  y -= 12;
+  variaz.forEach(v => {
+    const S = S0 * (1 + v / 100), t = tot(S);
+    const cell = (x, t2, b) => rows.push({ x: x, y: y, t: t2, size: 8, bold: !!b });
+    cell(40, (v > 0 ? "+" : "") + v + "%");
+    cell(110, nf(S, dec));
+    cell(190, fmt(legPnl(l1, S)));
+    cell(270, fmt(legPnl(l2, S)));
+    cell(350, fmt(t), true);
+    y -= 12;
+  });
+  y -= 8;
+  rows.push({ x: 40, y: y, t: "Documento generato automaticamente; non costituisce consulenza finanziaria.", size: 7 });
+
+  const bytes = buildPDF(rows);
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const fname = "riassunto-strategia.pdf";
+  const file = new File([blob], fname, { type: "application/pdf" });
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    navigator.share({ files: [file], title: "Riassunto strategia" }).catch(function () {});
+  } else {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
 }
 
 /* ---------- 3. Hedge (protective put) ---------- */
@@ -581,6 +640,6 @@ function calcBond() {
     card("Cedola nominale (%)", nf(cedEur / nom * 100) + " %");
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" nonce="tBpV0i8mszsRs50eXxwKmg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" nonce="l6OoBFUjIWxQuY381Qd1gQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
