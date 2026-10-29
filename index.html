@@ -108,6 +108,7 @@
 <nav>
   <button data-tab="payoff" class="active">Payoff</button>
   <button data-tab="strat">Strategia</button>
+  <button data-tab="hedge">Hedge</button>
   <button data-tab="bond">Obbligazioni</button>
 </nav>
 <main>
@@ -187,6 +188,26 @@
     Lascia N. strumenti vuoto o 0 nella Gamba 2 per usarne una sola.
   </div>
   <button class="btn ghost" onclick="exportPDF()">🖨️ Esporta riassunto in PDF</button>
+</section>
+
+<!-- ================= HEDGE ================= -->
+<section id="hedge">
+  <h2>Hedge — Quante put comprare per proteggere un capitale</h2>
+  <div class="grid">
+    <div><label for="hX">Capitale da proteggere X (€)</label><input id="hX" type="number" inputmode="decimal" placeholder="es. 10000" /></div>
+    <div><label for="hS0">Prezzo attuale sottostante S₀</label><input id="hS0" type="number" inputmode="decimal" placeholder="es. 100" /></div>
+    <div><label for="hK">Strike K della put</label><input id="hK" type="number" inputmode="decimal" placeholder="es. 95" /></div>
+    <div><label for="hPrem">Premio per strumento</label><input id="hPrem" type="number" inputmode="decimal" placeholder="es. 1.2" /></div>
+    <div><label for="hP">Parità P (CW per 1 azione)</label><input id="hP" type="number" inputmode="decimal" value="1" /></div>
+    <div><label for="hProt">Protezione desiderata (%)</label><input id="hProt" type="number" inputmode="decimal" value="100" /></div>
+  </div>
+  <button class="btn" onclick="calcHedge()">Calcola hedge</button>
+  <div class="results" id="hOut"></div>
+  <div class="note">
+    Ipotesi: il portafoglio si muove come il sottostante (beta = 1) e valori calcolati <b>a scadenza</b> (valore tempo ignorato).
+    N = X ÷ S₀ × P × protezione%. Con put su CW su valute: P = 1/parità del KID, e per liquidazione ÷S usa la tab Payoff.
+    Se il portafoglio non è il sottostante stesso (es. un paniere), questo è un'approssimazione: regola N in base alla beta reale.
+  </div>
 </section>
 
 <!-- ================= OBBLIGAZIONI ================= -->
@@ -496,7 +517,54 @@ function exportPDF() {
   window.print();
 }
 
-/* ---------- 3. Obbligazioni ---------- */
+/* ---------- 3. Hedge (protective put) ---------- */
+function calcHedge() {
+  const X = num("hX"), S0 = num("hS0"), K = num("hK"), prem = num("hPrem"), P = num("hP");
+  let prot = num("hProt");
+  if (isNaN(prot)) prot = 100;
+  if ([X, S0, K, prem, P].some(isNaN) || X <= 0 || S0 <= 0 || K <= 0 || P <= 0 || prot <= 0 || prot > 100)
+    return void ($("hOut").innerHTML = err("Compila tutti i campi (X, S₀, K, premio, P > 0; protezione 0–100)."));
+
+  const Nexact = X / S0 * P * prot / 100;
+  const N = Math.ceil(Nexact);
+  const costo = N * prem;
+  const floorVal = K * N / P - costo;          // valore minimo totale a S→0 (portafoglio azzerato + put ITM)
+  const maxLossHedge = X - floorVal;
+  const fmt = v => (v >= 0 ? "+" : "") + nf(v) + " €";
+
+  const putPnl = S => Math.max(K - S, 0) * N / P - costo;
+  const portPnl = S => X * (S - S0) / S0;
+  const totPnl = S => portPnl(S) + putPnl(S);
+
+  $("hOut").innerHTML =
+    card("<b>Put da comprare (esatto)</b>", nf(Nexact, 2), "neutral") +
+    card("<b>Put da comprare (arrotondato ↑)</b>", nf(N, 0) + " strumenti", "pos") +
+    card("Costo della protezione", nf(costo) + " €", "neg") +
+    card("Costo in % del capitale", nf(costo / X * 100) + " %", "neg") +
+    card("Valore minimo garantito (S→0)", nf(Math.max(floorVal, 0)) + " €", "neutral") +
+    card("<b>Perdita massima con hedge</b>", fmt(-Math.max(maxLossHedge, 0)), maxLossHedge <= X ? "pos" : "neg") +
+    card("(per confronto: senza hedge)", fmt(-X), "neg");
+
+  const variaz = [10, 0, -10, -20, -30, -40, -50, -80];
+  const dec = S0 >= 20 ? 2 : 4;
+  let html = '<table class="scen"><tr><th>Variazione</th><th>S a scadenza</th><th>P/L portafoglio</th><th>P/L put (netto)</th><th>Totale con hedge</th><th>Solo portafoglio</th></tr>';
+  variaz.forEach(v => {
+    const S = S0 * (1 + v / 100);
+    const pp = putPnl(S), po = portPnl(S), t = totPnl(S);
+    const solo = po;
+    html += '<tr><td>' + (v > 0 ? "+" : "") + v + '%</td><td>' + nf(S, dec) + '</td>' +
+      '<td class="' + (po >= 0 ? "pos" : "neg") + '">' + fmt(po) + '</td>' +
+      '<td class="' + (pp >= 0 ? "pos" : "neg") + '">' + fmt(pp) + '</td>' +
+      '<td class="' + (t >= 0 ? "pos" : "neg") + '"><b>' + fmt(t) + '</b></td>' +
+      '<td class="' + (solo >= 0 ? "pos" : "neg") + '">' + fmt(solo) + '</td></tr>';
+  });
+  html += '</table>';
+  let el = $("hTable");
+  if (!el) { el = document.createElement("div"); el.id = "hTable"; $("hOut").after(el); }
+  el.innerHTML = html;
+}
+
+/* ---------- 4. Obbligazioni ---------- */
 function calcBond() {
   const nom = num("oNom"), ced = num("oCed"), pz = num("oPrezzo");
   if ([nom, ced, pz].some(isNaN) || nom <= 0 || pz <= 0)
@@ -513,6 +581,6 @@ function calcBond() {
     card("Cedola nominale (%)", nf(cedEur / nom * 100) + " %");
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" nonce="WaiWEHRQC0IHjYtxTl30Og==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" nonce="tBpV0i8mszsRs50eXxwKmg==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
