@@ -1,0 +1,256 @@
+
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="format-detection" content="telephone=no" />
+<title>Calcolatori Opzioni, CW e Obbligazioni</title>
+<style>
+  :root {
+    font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+    color: #111827;
+    background: #f1f5f9;
+    -webkit-text-size-adjust: 100%;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { padding-bottom: env(safe-area-inset-bottom); }
+  header {
+    background: #0f172a; color: #fff; padding: 14px 16px 10px;
+    padding-top: calc(10px + env(safe-area-inset-top));
+    text-align: center;
+  }
+  header h1 { font-size: 17px; font-weight: 700; }
+  header p { font-size: 11px; opacity: .7; margin-top: 2px; }
+  nav {
+    display: flex; position: sticky; top: 0; z-index: 10;
+    background: #fff; border-bottom: 1px solid #e2e8f0;
+  }
+  nav button {
+    flex: 1; padding: 12px 4px; border: none; background: none;
+    font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer;
+  }
+  nav button.active { color: #0f172a; border-bottom: 3px solid #0f172a; }
+  main { max-width: 680px; margin: 0 auto; padding: 14px; }
+  section { display: none; }
+  section.active { display: block; }
+  h2 { font-size: 15px; margin-bottom: 10px; color: #0f172a; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid .full { grid-column: 1 / -1; }
+  label { display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 4px; }
+  input, select {
+    width: 100%; padding: 11px 10px; font-size: 16px; border: 1px solid #cbd5e1;
+    border-radius: 10px; background: #fff; color: #111827; appearance: none;
+  }
+  select { background-image: none; }
+  input:focus, select:focus { outline: 2px solid #2563eb; border-color: #2563eb; }
+  .results { margin-top: 14px; display: grid; gap: 8px; }
+  .card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 10px 12px; display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .card .v { font-weight: 700; font-size: 16px; white-space: nowrap; }
+  .card .k { font-size: 12px; color: #475569; }
+  .pos { color: #15803d; } .neg { color: #b91c1c; } .neutral { color: #1d4ed8; }
+  .note {
+    margin-top: 12px; font-size: 11px; color: #64748b; line-height: 1.5;
+    background: #f8fafc; border-left: 3px solid #cbd5e1; padding: 8px 10px; border-radius: 0 8px 8px 0;
+  }
+  .btn {
+    margin-top: 12px; width: 100%; padding: 13px; font-size: 15px; font-weight: 700;
+    background: #0f172a; color: #fff; border: none; border-radius: 12px; cursor: pointer;
+  }
+  .btn:active { background: #1e293b; }
+  @media (min-width: 480px) { .grid { grid-template-columns: 1fr 1fr 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>📈 Calcolatori Finanziari</h1>
+  <p>Opzioni &amp; Covered Warrant · Black-Scholes · Obbligazioni</p>
+</header>
+<nav>
+  <button data-tab="payoff" class="active">Payoff</button>
+  <button data-tab="bs">Black-Scholes</button>
+  <button data-tab="bond">Obbligazioni</button>
+</nav>
+<main>
+
+<!-- ================= PAYOFF ================= -->
+<section id="payoff" class="active">
+  <h2>Payoff Opzioni &amp; Covered Warrant (a scadenza)</h2>
+  <div class="grid">
+    <div><label for="pTipo">Tipo</label>
+      <select id="pTipo"><option value="call">Call</option><option value="put">Put</option></select></div>
+    <div><label for="pVerso">Verso</label>
+      <select id="pVerso"><option value="buy">Acquisto</option><option value="sell">Vendita</option></select></div>
+    <div><label for="pStrike">Strike K</label><input id="pStrike" type="number" inputmode="decimal" placeholder="es. 100" /></div>
+    <div><label for="pPremio">Premio per strumento</label><input id="pPremio" type="number" inputmode="decimal" placeholder="es. 2.5" /></div>
+    <div><label for="pParita">Parità P (CW per 1 azione)</label><input id="pParita" type="number" inputmode="decimal" value="1" /></div>
+    <div><label for="pNum">N. strumenti</label><input id="pNum" type="number" inputmode="numeric" placeholder="es. 100" /></div>
+    <div class="full"><label for="pS">Prezzo sottostante a scadenza S</label><input id="pS" type="number" inputmode="decimal" placeholder="es. 110" /></div>
+    <div><label for="pMolt">Moltiplicatore</label><input id="pMolt" type="number" inputmode="numeric" value="1" /></div>
+    <div><label for="pFx">Liquidazione FX (÷ S)?</label>
+      <select id="pFx"><option value="no">No (standard max)</option><option value="si">Sì (max(S−K,0)÷S)</option></select></div>
+  </div>
+  <button class="btn" onclick="calcPayoff()">Calcola</button>
+  <div class="results" id="pOut"></div>
+  <div class="note">
+    ⚠️ Parità sui CW su valute (FX): la parità del foglio informativo è "unità di valuta per 1 warrant" →
+    qui inserisci P = 1/parità (convenzione azionaria). Verifica sempre la formula di liquidazione nel prospetto.
+    Break-even e P&amp;L valgono <b>a scadenza</b>; prima conta il valore tempo.
+  </div>
+</section>
+
+<!-- ================= BLACK-SCHOLES ================= -->
+<section id="bs">
+  <h2>Black-Scholes — Opzioni europee</h2>
+  <div class="grid">
+    <div><label for="bS">Prezzo S</label><input id="bS" type="number" inputmode="decimal" placeholder="es. 100" /></div>
+    <div><label for="bK">Strike K</label><input id="bK" type="number" inputmode="decimal" placeholder="es. 100" /></div>
+    <div><label for="bT">Scadenza (giorni)</label><input id="bT" type="number" inputmode="numeric" placeholder="es. 365" /></div>
+    <div><label for="bVol">Volatilità σ (%)</label><input id="bVol" type="number" inputmode="decimal" placeholder="es. 20" /></div>
+    <div><label for="bR">Tasso r (%)</label><input id="bR" type="number" inputmode="decimal" placeholder="es. 3" /></div>
+    <div><label for="bQ">Dividendo/tasso estero q (%)</label><input id="bQ" type="number" inputmode="decimal" value="0" /></div>
+    <div class="full"><label for="bP">Parità P (CW per 1 azione; premio per strumento = prezzo teorico ÷ P)</label><input id="bP" type="number" inputmode="decimal" value="1" /></div>
+  </div>
+  <button class="btn" onclick="calcBS()">Calcola</button>
+  <div class="results" id="bOut"></div>
+  <div class="note">Prezzo teorico per unità di sottostante; il premio per strumento segue la parità P.
+    Greche riferite a 1 unità: Delta/Vega/Rho (per 1% di r), Theta per giorno. Strumenti stile europeo, cash-settled.</div>
+</section>
+
+<!-- ================= OBBLIGAZIONI ================= -->
+<section id="bond">
+  <h2>Rendimento Immediato Obbligazioni</h2>
+  <div class="grid">
+    <div><label for="oNom">Nominale (€)</label><input id="oNom" type="number" inputmode="decimal" placeholder="es. 1000" /></div>
+    <div><label for="oCed">Cedola annua</label><input id="oCed" type="number" inputmode="decimal" placeholder="es. 4" /></div>
+    <div><label for="oCedTipo">Cedola espressa in</label>
+      <select id="oCedTipo"><option value="pct">% del nominale</option><option value="eur">€</option></select></div>
+    <div><label for="oPrezzo">Prezzo pagato</label><input id="oPrezzo" type="number" inputmode="decimal" placeholder="es. 95" /></div>
+    <div><label for="oPrezzoTipo">Prezzo in</label>
+      <select id="oPrezzoTipo"><option value="pct">% del nominale</option><option value="eur">€</option></select></div>
+  </div>
+  <button class="btn" onclick="calcBond()">Calcola</button>
+  <div class="results" id="oOut"></div>
+  <div class="note">Rendimento immediato = cedola annua ÷ capitale investito. Non calcola il TWR a scadenza
+    (mancano scadenza e prezzo di rimborso).</div>
+</section>
+
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const nf = (x, d = 2) => Number(x).toLocaleString("it-IT", { minimumFractionDigits: d, maximumFractionDigits: d });
+const num = id => { const v = $(id).value.replace(",", "."); return v === "" ? NaN : parseFloat(v); };
+
+function card(k, v, cls) {
+  return '<div class="card"><span class="k">' + k + '</span><span class="v ' + (cls || "") + '">' + v + '</span></div>';
+}
+function err(msg) { return '<div class="card"><span class="k" style="color:#b91c1c">' + msg + '</span></div>'; }
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.classList.remove("active"));
+  document.querySelectorAll("section").forEach(x => x.classList.remove("active"));
+  b.classList.add("active");
+  $(b.dataset.tab).classList.add("active");
+});
+
+/* ---------- 1. Payoff ---------- */
+function calcPayoff() {
+  const tipo = $("pTipo").value, verso = $("pVerso").value;
+  const K = num("pStrike"), prem = num("pPremio"), P = num("pParita"),
+        N = num("pNum"), S = num("pS"), M = num("pMolt"), fx = $("pFx").value === "si";
+  if ([K, prem, P, N, S, M].some(isNaN) || P <= 0 || N <= 0)
+    return void ($("pOut").innerHTML = err("Compila tutti i campi (P e N. strumenti > 0)."));
+
+  let intrShare = tipo === "call" ? Math.max(S - K, 0) : Math.max(K - S, 0);
+  if (fx) intrShare = intrShare / S;
+  const intrUnit = intrShare / P;                   // per strumento = per azione ÷ P
+  const intrTot = intrShare * N * M / P;            // valore intrinseco totale
+  const costo = prem * N * M;                        // premio versato/incassato totale
+  const pnl = (verso === "buy" ? intrTot - costo : costo - intrTot);
+  let be = tipo === "call" ? K + prem * P : K - prem * P;
+  if (fx) {
+    const target = prem * P;
+    let lo = K, hi = K * 3 + 1, mid;
+    if (tipo === "put") { lo = 0; hi = K; }
+    for (let i = 0; i < 80; i++) {
+      mid = (lo + hi) / 2;
+      const y = tipo === "call" ? Math.max(mid - K, 0) / mid : Math.max(K - mid, 0) / mid;
+      if ((tipo === "call" && y < target) || (tipo === "put" && y > target)) lo = mid; else hi = mid;
+    }
+    be = mid;
+  }
+  const espAz = P !== 0 ? N / P : NaN;
+  const cls = pnl > 0 ? "pos" : pnl < 0 ? "neg" : "neutral";
+  $("pOut").innerHTML =
+    card("Valore intrinseco per strumento", nf(intrUnit, 4)) +
+    card("Intrinseco totale a scadenza", nf(intrTot) + " €") +
+    card("Costo totale (premio × N.)", nf(costo) + " €", "neg") +
+    card("<b>P&amp;L totale a scadenza</b>", (pnl >= 0 ? "+" : "") + nf(pnl) + " €", cls) +
+    card("Break-even sottostante (BE)", nf(be, 4), "neutral") +
+    (tipo === "call"
+      ? card("Max profitto (buy call)", "Illimitato") + card("Max perdita (buy call)", nf(costo) + " €", "neg")
+      : card("Max profitto (buy put, no FX)", nf((K - prem * P) * N * M / P) + " €") + card("Max perdita (buy put)", nf(costo) + " €", "neg")) +
+    card("Esposizione azioni equivalente (N/P)", nf(espAz, 4));
+}
+
+/* ---------- 2. Black-Scholes ---------- */
+function nPDF(x) { return Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI); }
+function nCDF(x) {
+  const s = x < 0 ? -1 : 1; x = Math.abs(x) / Math.SQRT2;
+  const t = 1 / (1 + 0.3275911 * x);
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+  return 0.5 * (1 + s * y);
+}
+function calcBS() {
+  const S = num("bS"), K = num("bK"), gg = num("bT"), volP = num("bVol"), rP = num("bR"), qP = num("bQ"), P = num("bP");
+  if ([S, K, gg, volP, rP, qP, P].some(isNaN) || S <= 0 || K <= 0 || gg <= 0 || volP <= 0 || P <= 0)
+    return void ($("bOut").innerHTML = err("Compila tutti i campi (S, K, giorni, σ > 0; P > 0)."));
+  const T = gg / 365, v = volP / 100, r = rP / 100, q = qP / 100;
+  const sq = v * Math.sqrt(T);
+  const d1 = (Math.log(S / K) + (r - q + v * v / 2) * T) / sq, d2 = d1 - sq;
+  const dfq = Math.exp(-q * T), dfr = Math.exp(-r * T);
+  const c = S * dfq * nCDF(d1) - K * dfr * nCDF(d2);
+  const p = K * dfr * nCDF(-d2) - S * dfq * nCDF(-d1);
+  const deltaC = dfq * nCDF(d1), deltaP = -dfq * nCDF(-d1);
+  const gamma = dfq * nPDF(d1) / (S * sq);
+  const vega = S * dfq * nPDF(d1) * Math.sqrt(T) / 100;
+  const thetaC = (-S * dfq * nPDF(d1) * v / (2 * Math.sqrt(T)) - r * K * dfr * nCDF(d2) + q * S * dfq * nCDF(d1)) / 365;
+  const thetaP = (-S * dfq * nPDF(d1) * v / (2 * Math.sqrt(T)) + r * K * dfr * nCDF(-d2) - q * S * dfq * nCDF(-d1)) / 365;
+  const rhoC = K * T * dfr * nCDF(d2) / 100, rhoP = -K * T * dfr * nCDF(-d2) / 100;
+  $("bOut").innerHTML =
+    card("<b>Prezzo teorico CALL</b>", nf(c, 4) + " per unità", "pos") +
+    card("Premio call per strumento (÷P)", nf(c / P, 4) + " €") +
+    card("<b>Prezzo teorico PUT</b>", nf(p, 4) + " per unità", "pos") +
+    card("Premio put per strumento (÷P)", nf(p / P, 4) + " €") +
+    card("Delta call / put", nf(deltaC, 4) + " / " + nf(deltaP, 4)) +
+    card("Gamma (per unità)", nf(gamma, 6)) +
+    card("Vega (per 1% di σ)", nf(vega, 4)) +
+    card("Theta call / put (per giorno)", nf(thetaC, 4) + " / " + nf(thetaP, 4)) +
+    card("Rho call / put (per 1% di r)", nf(rhoC, 4) + " / " + nf(rhoP, 4));
+}
+
+/* ---------- 3. Obbligazioni ---------- */
+function calcBond() {
+  const nom = num("oNom"), ced = num("oCed"), pz = num("oPrezzo");
+  if ([nom, ced, pz].some(isNaN) || nom <= 0 || pz <= 0)
+    return void ($("oOut").innerHTML = err("Compila tutti i campi (nominale e prezzo > 0)."));
+  const cedEur = $("oCedTipo").value === "pct" ? nom * ced / 100 : ced;
+  const capInv = $("oPrezzoTipo").value === "pct" ? nom * pz / 100 : pz;
+  const rend = cedEur / capInv * 100;
+  const diff = capInv - nom;
+  $("oOut").innerHTML =
+    card("<b>Rendimento immediato</b>", nf(rend) + " %", "neutral") +
+    card("Cedola incassata all'anno", nf(cedEur) + " €") +
+    card("Capitale investito (prezzo)", nf(capInv) + " €") +
+    card("Gain/loss a rimborso al nominale", (diff >= 0 ? "+" : "") + nf(diff) + " €", diff >= 0 ? "pos" : "neg") +
+    card("Cedola nominale (%)", nf(cedEur / nom * 100) + " %");
+}
+</script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" nonce="pYWCoIIpHT1eTDsE2I2Yuw==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
