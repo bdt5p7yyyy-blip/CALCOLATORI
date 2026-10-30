@@ -94,6 +94,8 @@
   #fxCcyLabel a { color: #60a5fa; text-decoration: underline; font-weight: 600; margin-left: 6px; }
   #chart { margin-top: 10px; width: 100%; }
   #printArea { display: none; }
+  .dist { font-weight: 700; color: #64748b; margin-left: 6px; font-size: 11px; }
+  .dist.on { color: #60a5fa; }
   @media (min-width: 480px) { .grid { grid-template-columns: 1fr 1fr 1fr; } fieldset.leg .grid { grid-template-columns: 1fr 1fr 1fr 1fr; } }
   /* --- iPad / tablet --- */
   @media (min-width: 768px) {
@@ -177,7 +179,7 @@
     <div class="full"><label for="s0">Prezzo attuale del sottostante S₀</label><input id="s0" type="number" inputmode="decimal" placeholder="es. 100" /></div>
 
     <fieldset class="leg" id="leg1Box">
-      <legend>Gamba 1</legend>
+      <legend>Gamba 1<span class="dist" id="l1Dist"></span></legend>
       <div class="grid">
         <div><label for="l1Tipo">Tipo</label>
           <select id="l1Tipo"><option value="put">Put</option><option value="call">Call</option></select></div>
@@ -191,7 +193,7 @@
     </fieldset>
 
     <fieldset class="leg off" id="leg2Box">
-      <legend>Gamba 2 (opzionale)</legend>
+      <legend>Gamba 2 (opzionale)<span class="dist" id="l2Dist"></span></legend>
       <div class="grid">
         <div><label for="l2Tipo">Tipo</label>
           <select id="l2Tipo"><option value="put">Put</option><option value="call">Call</option></select></div>
@@ -315,6 +317,19 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
   b.classList.add("active");
   $(b.dataset.tab).classList.add("active");
 });
+
+/* ---------- Distanza % strike vs sottostante (live) ---------- */
+function updDist() {
+  const S0 = num("s0");
+  [["l1","l1Dist"],["l2","l2Dist"]].forEach(function(pair) {
+    const el = $(pair[1]), K = num(pair[0] + "K");
+    if (isNaN(S0) || S0 <= 0 || isNaN(K) || K <= 0) { el.textContent = ""; el.classList.remove("on"); return; }
+    const d = (K - S0) / S0 * 100;
+    el.textContent = "K vs S\u2080: " + (d >= 0 ? "+" : "") + d.toFixed(1).replace(".", ",") + "%";
+    el.classList.add("on");
+  });
+}
+["s0", "l1K", "l2K"].forEach(function(id) { $(id).addEventListener("input", updDist); });
 
 /* ---------- 1. Payoff ---------- */
 function calcPayoff() {
