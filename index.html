@@ -84,6 +84,10 @@
   table.scen td:first-child, table.scen th:first-child { text-align: left; }
   .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; font-size: 11px; color: #94a3b8; }
   .legend span b { display: inline-block; width: 18px; height: 3px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+  .links a {
+    display: inline-block; padding: 9px 12px; margin: 4px 6px 2px 0; background: #2563eb; color: #fff;
+    border-radius: 10px; text-decoration: none; font-size: 12px; font-weight: 600;
+  }
   #chart { margin-top: 10px; width: 100%; }
   #printArea { display: none; }
   @media (min-width: 480px) { .grid { grid-template-columns: 1fr 1fr 1fr; } fieldset.leg .grid { grid-template-columns: 1fr 1fr 1fr 1fr; } }
@@ -109,6 +113,7 @@
   <button data-tab="payoff" class="active">Payoff</button>
   <button data-tab="strat">Strategia</button>
   <button data-tab="hedge">Hedge</button>
+  <button data-tab="fx">Bond FX</button>
   <button data-tab="bond">Obbligazioni</button>
 </nav>
 <main>
@@ -207,6 +212,39 @@
     Ipotesi: il portafoglio si muove come il sottostante (beta = 1) e valori calcolati <b>a scadenza</b> (valore tempo ignorato).
     N = X ÷ S₀ × P × protezione%. Con put su CW su valute: P = 1/parità del KID, e per liquidazione ÷S usa la tab Payoff.
     Se il portafoglio non è il sottostante stesso (es. un paniere), questo è un'approssimazione: regola N in base alla beta reale.
+  </div>
+</section>
+
+<!-- ================= BOND FX ================= -->
+<section id="fx">
+  <h2>Bond in valuta — Yield effettivo in € (USD · MXN · TRY)</h2>
+  <div class="links">
+    <a href="https://www.google.com/finance/quote/EUR-USD" target="_blank" onclick="setCcy('USD', 1.12)">💱 USD</a>
+    <a href="https://www.google.com/finance/quote/EUR-MXN" target="_blank" onclick="setCcy('MXN', 21.0)">💱 MXN</a>
+    <a href="https://www.google.com/finance/quote/EUR-TRY" target="_blank" onclick="setCcy('TRY', 55.7)">💱 TRY</a>
+  </div>
+  <div class="card" id="fxCcyBox" style="display:none">
+    <span class="k">Valuta impostata</span><span class="v neutral" id="fxCcyLabel"></span>
+  </div>
+  <div class="grid">
+    <div><label for="fxNom">Nominale (in valuta)</label><input id="fxNom" type="number" inputmode="decimal" placeholder="es. 1000" /></div>
+    <div><label for="fxCed">Cedola annua (% nominale)</label><input id="fxCed" type="number" inputmode="decimal" placeholder="es. 25" /></div>
+    <div><label for="fxPrezzo">Prezzo pagato (% nominale)</label><input id="fxPrezzo" type="number" inputmode="decimal" placeholder="es. 100" /></div>
+    <div><label for="fxQuote">Quotazione del cambio</label>
+      <select id="fxQuote"><option value="eur">1 EUR = X valuta</option><option value="val">1 valuta = Y €</option></select></div>
+    <div><label for="fxSpot">Cambio X o Y</label><input id="fxSpot" type="number" inputmode="decimal" placeholder="es. 55.7" /></div>
+    <div><label for="fxOriz">Orizzonte</label>
+      <select id="fxOriz"><option value="12">12 mesi</option><option value="6">6 mesi</option></select></div>
+    <div class="full"><label for="fxSval">Svalutazione annua della valuta stimata (%)</label><input id="fxSval" type="number" inputmode="decimal" placeholder="es. 20" /></div>
+  </div>
+  <button class="btn" onclick="calcFx()">Calcola yield effettivo</button>
+  <div class="results" id="fxOut"></div>
+  <div class="note">
+    Riferimento 30/10/2026: 1 EUR ≈ 55,7 TRY · 1,12 USD · 21,0 MXN (tocca i pulsanti sopra per il cambio live).
+    Seleziona la quotazione come la vedi sul convertitore: "1 EUR = 55,7 TRY" è la forma più comune.
+    Yield effettivo in € = (cedone + rimborso a cambio stimato − costo) ÷ costo, annualizzato sull'orizzonte;
+    cambio stimato = cambio attuale × (1 − svalutazione)^(mesi/12). Stima tua della svalutazione: è l'ipotesi chiave.
+    Valori al netto di tasse e commissioni; svalutazione e rendimento composto approssimati.
   </div>
 </section>
 
@@ -623,7 +661,67 @@ function calcHedge() {
   el.innerHTML = html;
 }
 
-/* ---------- 4. Obbligazioni ---------- */
+/* ---------- 4. Bond FX (yield effettivo in EUR) ---------- */
+function setCcy(code, rif) {
+  $("fxQuote").value = "eur";                 // sempre "1 EUR = X valuta"
+  $("fxSpot").value = String(rif);            // col punto: input type=number rifiuta la virgola
+  $("fxCcyBox").style.display = "flex";
+  $("fxCcyLabel").innerHTML = code + " · 1 EUR = " + String(rif).replace(".", ",") + " " + code +
+    ' <span style="font-weight:400;font-size:11px">(rif. 30/10/26 — aggiorna col live)</span>';
+}
+function calcFx() {
+  const nom = num("fxNom"), ced = num("fxCed"), pz = num("fxPrezzo"),
+        spot = num("fxSpot"), sval = num("fxSval");
+  const quote = $("fxQuote").value, mesi = parseFloat($("fxOriz").value);
+  if ([nom, ced, pz, spot, sval].some(isNaN) || nom <= 0 || pz <= 0 || spot <= 0 || sval < 0)
+    return void ($("fxOut").innerHTML = err("Compila tutti i campi (nominale, prezzo, cambio > 0; svalutazione ≥ 0)."));
+
+  const S0 = quote === "eur" ? 1 / spot : spot;   // € per 1 unità di valuta
+  const f = mesi / 12;
+  const d = sval / 100;
+
+  const costoVal = nom * pz / 100;                 // capitale investito in valuta
+  const costoEur = costoVal * S0;
+  const cedVal = nom * ced / 100;                  // cedola annua in valuta
+  const teorico = cedVal / costoVal * 100;         // yield teorico in valuta
+
+  const SH = S0 * Math.pow(1 - d, f);              // cambio stimato a fine orizzonte
+  const rimborsoEur = nom * SH;
+  const cedoneEur = cedVal * f * SH;               // cedone dell'orizzonte a cambio fine
+  const pl = cedoneEur + rimborsoEur - costoEur;
+  const yieldEur = pl / costoEur / f * 100;        // annualizzato
+  const fmt = v => (v >= 0 ? "+" : "") + nf(v) + " €";
+
+  $("fxOut").innerHTML =
+    card("Capitale investito", nf(costoVal, 2) + " val = " + nf(costoEur) + " €") +
+    card("Cedola annua", nf(cedVal, 2) + " val = " + nf(cedVal * S0) + " € (a cambio attuale)") +
+    card("<b>Yield teorico in valuta</b>", nf(teorico) + " %", "neutral") +
+    card("Cambio stimato tra " + mesi + " mesi", nf(SH, 6) + " € per 1 valuta", "neutral") +
+    card("Rimborso nominale in € stimato", nf(rimborsoEur) + " €") +
+    card("Cedone dell'orizzonte in € stimato", nf(cedoneEur) + " €") +
+    card("<b>P/L totale in € all'orizzonte</b>", fmt(pl), pl >= 0 ? "pos" : "neg") +
+    card("<b>Yield effettivo in € (annualizzato)</b>", (yieldEur >= 0 ? "+" : "") + nf(yieldEur) + " %", yieldEur >= 0 ? "pos" : "neg") +
+    card("Cedola di cui sopra in € a cambio stimato", nf(cedVal * SH) + " €/anno");
+
+  // scenari svalutazione
+  const scen = [0, 10, 20, 30, 40];
+  let html = '<table class="scen"><tr><th>Svalut. annua</th><th>Cambio a ' + mesi + ' mesi</th><th>P/L totale €</th><th>Yield effettivo €</th></tr>';
+  scen.forEach(sv => {
+    const dd = sv / 100, sh = S0 * Math.pow(1 - dd, f);
+    const cedone = cedVal * f * sh, rimb = nom * sh;
+    const p = cedone + rimb - costoEur;
+    const y = p / costoEur / f * 100;
+    html += '<tr><td>' + sv + '%</td><td>' + nf(sh, 4) + '</td>' +
+      '<td class="' + (p >= 0 ? "pos" : "neg") + '">' + fmt(p) + '</td>' +
+      '<td class="' + (y >= 0 ? "pos" : "neg") + '"><b>' + (y >= 0 ? "+" : "") + nf(y) + '%</b></td></tr>';
+  });
+  html += '</table>';
+  let el = $("fxTable");
+  if (!el) { el = document.createElement("div"); el.id = "fxTable"; $("fxOut").after(el); }
+  el.innerHTML = html;
+}
+
+/* ---------- 5. Obbligazioni ---------- */
 function calcBond() {
   const nom = num("oNom"), ced = num("oCed"), pz = num("oPrezzo");
   if ([nom, ced, pz].some(isNaN) || nom <= 0 || pz <= 0)
@@ -640,6 +738,6 @@ function calcBond() {
     card("Cedola nominale (%)", nf(cedEur / nom * 100) + " %");
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" nonce="l6OoBFUjIWxQuY381Qd1gQ==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" nonce="4h7nnTnS5qmBrAIS96eMvA==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
