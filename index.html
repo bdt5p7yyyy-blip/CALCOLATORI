@@ -97,7 +97,8 @@
   .dist { font-weight: 700; color: #64748b; margin-left: 6px; font-size: 11px; }
   .dist.on { color: #60a5fa; }
   #pDist { margin-top: 10px; font-size: 12px; font-weight: 700; color: #60a5fa; }
-  #pDist:empty { display: none; }
+  #pDist:empty, #hDist:empty { display: none; }
+  #hDist { margin-top: 10px; font-size: 12px; font-weight: 700; color: #60a5fa; }
   @media (min-width: 480px) { .grid { grid-template-columns: 1fr 1fr 1fr; } fieldset.leg .grid { grid-template-columns: 1fr 1fr 1fr 1fr; } }
   /* --- iPad / tablet --- */
   @media (min-width: 768px) {
@@ -237,6 +238,7 @@
     <div><label for="hP">Parità P (CW per 1 azione)</label><input id="hP" type="number" inputmode="decimal" value="1" /></div>
     <div><label for="hProt">Protezione desiderata (%)</label><input id="hProt" type="number" inputmode="decimal" value="100" /></div>
   </div>
+  <div id="hDist"></div>
   <button class="btn" onclick="calcHedge()">Calcola hedge</button>
   <div class="results" id="hOut"></div>
   <div class="note">
@@ -344,8 +346,16 @@ function updDist() {
   else if (pTipo === "put") pTag = pK > pS ? "put ITM" : "put OTM";
   else pTag = pK < pS ? "call ITM" : "call OTM";
   pD.textContent = "K vs S a scadenza: " + (dP >= 0 ? "+" : "") + dP.toFixed(1).replace(".", ",") + "% · " + pTag;
+  const hD = $("hDist"), hK = num("hK"), hS = num("hS0");
+  if (isNaN(hK) || hK <= 0 || isNaN(hS) || hS <= 0) { hD.textContent = ""; return; }
+  const dH = (hK - hS) / hS * 100;
+  let hTag;
+  if (Math.abs(dH) < 0.05) hTag = "ATM";
+  else if (hK > hS) hTag = "put ITM · protezione immediata";
+  else hTag = "put OTM · protezione parte sotto K = " + hK.toLocaleString("it-IT") + " (−" + Math.abs(dH).toFixed(1).replace(".", ",") + "%)";
+  hD.textContent = "K vs S\u2080: " + (dH >= 0 ? "+" : "") + dH.toFixed(1).replace(".", ",") + "% · " + hTag;
 }
-["s0", "l1K", "l2K", "pStrike", "pS"].forEach(function(id) { $(id).addEventListener("input", updDist); });
+["s0", "l1K", "l2K", "pStrike", "pS", "hK", "hS0"].forEach(function(id) { $(id).addEventListener("input", updDist); });
 ["pTipo", "pVerso", "l1Tipo", "l1Verso", "l2Tipo", "l2Verso"].forEach(function(id) { $(id).addEventListener("change", updDist); });
 
 /* ---------- 1. Payoff ---------- */
