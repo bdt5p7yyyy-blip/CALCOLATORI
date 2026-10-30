@@ -325,19 +325,28 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
 function updDist() {
   const S0 = num("s0");
   [["l1","l1Dist"],["l2","l2Dist"]].forEach(function(pair) {
-    const el = $(pair[1]), K = num(pair[0] + "K");
+    const el = $(pair[1]), K = num(pair[0] + "K"), tipo = $(pair[0] + "Tipo").value;
     if (isNaN(S0) || S0 <= 0 || isNaN(K) || K <= 0) { el.textContent = ""; el.classList.remove("on"); return; }
     const d = (K - S0) / S0 * 100;
-    el.textContent = "K vs S\u2080: " + (d >= 0 ? "+" : "") + d.toFixed(1).replace(".", ",") + "%";
+    let tag;
+    if (Math.abs(d) < 0.05) tag = "ATM";
+    else if (tipo === "put") tag = K > S0 ? "put ITM" : "put OTM";
+    else tag = K < S0 ? "call ITM" : "call OTM";
+    el.textContent = "K vs S\u2080: " + (d >= 0 ? "+" : "") + d.toFixed(1).replace(".", ",") + "% · " + tag;
     el.classList.add("on");
   });
   const pD = $("pDist"), pK = num("pStrike"), pS = num("pS");
   if (isNaN(pK) || pK <= 0 || isNaN(pS) || pS <= 0) { pD.textContent = ""; return; }
   const dP = (pK - pS) / pS * 100;
-  pD.textContent = "K vs S a scadenza: " + (dP >= 0 ? "+" : "") + dP.toFixed(1).replace(".", ",") + "%" +
-    (pK > pS ? " (put ITM / call OTM)" : pK < pS ? " (call ITM / put OTM)" : " (ATM)");
+  const pTipo = $("pTipo").value;
+  let pTag;
+  if (Math.abs(dP) < 0.05) pTag = "ATM";
+  else if (pTipo === "put") pTag = pK > pS ? "put ITM" : "put OTM";
+  else pTag = pK < pS ? "call ITM" : "call OTM";
+  pD.textContent = "K vs S a scadenza: " + (dP >= 0 ? "+" : "") + dP.toFixed(1).replace(".", ",") + "% · " + pTag;
 }
 ["s0", "l1K", "l2K", "pStrike", "pS"].forEach(function(id) { $(id).addEventListener("input", updDist); });
+["pTipo", "pVerso", "l1Tipo", "l1Verso", "l2Tipo", "l2Verso"].forEach(function(id) { $(id).addEventListener("change", updDist); });
 
 /* ---------- 1. Payoff ---------- */
 function calcPayoff() {
