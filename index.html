@@ -338,22 +338,28 @@ function updDist() {
     el.classList.add("on");
   });
   const pD = $("pDist"), pK = num("pStrike"), pS = num("pS");
-  if (isNaN(pK) || pK <= 0 || isNaN(pS) || pS <= 0) { pD.textContent = ""; return; }
-  const dP = (pK - pS) / pS * 100;
-  const pTipo = $("pTipo").value;
-  let pTag;
-  if (Math.abs(dP) < 0.05) pTag = "ATM";
-  else if (pTipo === "put") pTag = pK > pS ? "put ITM" : "put OTM";
-  else pTag = pK < pS ? "call ITM" : "call OTM";
-  pD.textContent = "K vs S a scadenza: " + (dP >= 0 ? "+" : "") + dP.toFixed(1).replace(".", ",") + "% · " + pTag;
+  if (isNaN(pK) || pK <= 0 || isNaN(pS) || pS <= 0) {
+    pD.textContent = "";
+  } else {
+    const dP = (pK - pS) / pS * 100;
+    const pTipo = $("pTipo").value;
+    let pTag;
+    if (Math.abs(dP) < 0.05) pTag = "ATM";
+    else if (pTipo === "put") pTag = pK > pS ? "put ITM" : "put OTM";
+    else pTag = pK < pS ? "call ITM" : "call OTM";
+    pD.textContent = "K vs S a scadenza: " + (dP >= 0 ? "+" : "") + dP.toFixed(1).replace(".", ",") + "% · " + pTag;
+  }
   const hD = $("hDist"), hK = num("hK"), hS = num("hS0");
-  if (isNaN(hK) || hK <= 0 || isNaN(hS) || hS <= 0) { hD.textContent = ""; return; }
-  const dH = (hK - hS) / hS * 100;
-  let hTag;
-  if (Math.abs(dH) < 0.05) hTag = "ATM";
-  else if (hK > hS) hTag = "put ITM · protezione immediata";
-  else hTag = "put OTM · protezione parte sotto K = " + hK.toLocaleString("it-IT") + " (−" + Math.abs(dH).toFixed(1).replace(".", ",") + "%)";
-  hD.textContent = "K vs S\u2080: " + (dH >= 0 ? "+" : "") + dH.toFixed(1).replace(".", ",") + "% · " + hTag;
+  if (isNaN(hK) || hK <= 0 || isNaN(hS) || hS <= 0) {
+    hD.textContent = "";
+  } else {
+    const dH = (hK - hS) / hS * 100;
+    let hTag;
+    if (Math.abs(dH) < 0.05) hTag = "ATM";
+    else if (hK > hS) hTag = "put ITM · protezione immediata";
+    else hTag = "put OTM · protezione parte sotto K = " + hK.toLocaleString("it-IT") + " (−" + Math.abs(dH).toFixed(1).replace(".", ",") + "%)";
+    hD.textContent = "K vs S\u2080: " + (dH >= 0 ? "+" : "") + dH.toFixed(1).replace(".", ",") + "% · " + hTag;
+  }
 }
 ["s0", "l1K", "l2K", "pStrike", "pS", "hK", "hS0"].forEach(function(id) { $(id).addEventListener("input", updDist); });
 ["pTipo", "pVerso", "l1Tipo", "l1Verso", "l2Tipo", "l2Verso"].forEach(function(id) { $(id).addEventListener("change", updDist); });
