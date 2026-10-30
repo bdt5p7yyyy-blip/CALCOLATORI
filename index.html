@@ -96,6 +96,8 @@
   #printArea { display: none; }
   .dist { font-weight: 700; color: #64748b; margin-left: 6px; font-size: 11px; }
   .dist.on { color: #60a5fa; }
+  #pDist { margin-top: 10px; font-size: 12px; font-weight: 700; color: #60a5fa; }
+  #pDist:empty { display: none; }
   @media (min-width: 480px) { .grid { grid-template-columns: 1fr 1fr 1fr; } fieldset.leg .grid { grid-template-columns: 1fr 1fr 1fr 1fr; } }
   /* --- iPad / tablet --- */
   @media (min-width: 768px) {
@@ -163,6 +165,7 @@
     <div><label for="pFx">Liquidazione FX (÷ S)?</label>
       <select id="pFx"><option value="no">No (standard max)</option><option value="si">Sì (max(S−K,0)÷S)</option></select></div>
   </div>
+  <div id="pDist"></div>
   <button class="btn" onclick="calcPayoff()">Calcola</button>
   <div class="results" id="pOut"></div>
   <div class="note">
@@ -328,8 +331,13 @@ function updDist() {
     el.textContent = "K vs S\u2080: " + (d >= 0 ? "+" : "") + d.toFixed(1).replace(".", ",") + "%";
     el.classList.add("on");
   });
+  const pD = $("pDist"), pK = num("pStrike"), pS = num("pS");
+  if (isNaN(pK) || pK <= 0 || isNaN(pS) || pS <= 0) { pD.textContent = ""; return; }
+  const dP = (pK - pS) / pS * 100;
+  pD.textContent = "K vs S a scadenza: " + (dP >= 0 ? "+" : "") + dP.toFixed(1).replace(".", ",") + "%" +
+    (pK > pS ? " (put ITM / call OTM)" : pK < pS ? " (call ITM / put OTM)" : " (ATM)");
 }
-["s0", "l1K", "l2K"].forEach(function(id) { $(id).addEventListener("input", updDist); });
+["s0", "l1K", "l2K", "pStrike", "pS"].forEach(function(id) { $(id).addEventListener("input", updDist); });
 
 /* ---------- 1. Payoff ---------- */
 function calcPayoff() {
