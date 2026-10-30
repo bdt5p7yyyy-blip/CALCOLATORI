@@ -88,6 +88,11 @@
     display: inline-block; padding: 9px 12px; margin: 4px 6px 2px 0; background: #2563eb; color: #fff;
     border-radius: 10px; text-decoration: none; font-size: 12px; font-weight: 600;
   }
+  .links button {
+    display: inline-block; padding: 9px 12px; margin: 4px 6px 2px 0; background: #2563eb; color: #fff;
+    border: none; border-radius: 10px; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  #fxCcyLabel a { color: #60a5fa; text-decoration: underline; font-weight: 600; margin-left: 6px; }
   #chart { margin-top: 10px; width: 100%; }
   #printArea { display: none; }
   @media (min-width: 480px) { .grid { grid-template-columns: 1fr 1fr 1fr; } fieldset.leg .grid { grid-template-columns: 1fr 1fr 1fr 1fr; } }
@@ -219,9 +224,9 @@
 <section id="fx">
   <h2>Bond in valuta — Yield effettivo in € (USD · MXN · TRY)</h2>
   <div class="links">
-    <a href="https://www.google.com/finance/quote/EUR-USD" target="_blank" onclick="setCcy('USD', 1.12)">💱 USD</a>
-    <a href="https://www.google.com/finance/quote/EUR-MXN" target="_blank" onclick="setCcy('MXN', 21.0)">💱 MXN</a>
-    <a href="https://www.google.com/finance/quote/EUR-TRY" target="_blank" onclick="setCcy('TRY', 55.7)">💱 TRY</a>
+    <button type="button" onclick="setCcy('USD', 1.12)">💱 USD</button>
+    <button type="button" onclick="setCcy('MXN', 21.0)">💱 MXN</button>
+    <button type="button" onclick="setCcy('TRY', 55.7)">💱 TRY</button>
   </div>
   <div class="card" id="fxCcyBox" style="display:none">
     <span class="k">Valuta impostata</span><span class="v neutral" id="fxCcyLabel"></span>
@@ -240,7 +245,8 @@
   <button class="btn" onclick="calcFx()">Calcola yield effettivo</button>
   <div class="results" id="fxOut"></div>
   <div class="note">
-    Riferimento 30/10/2026: 1 EUR ≈ 55,7 TRY · 1,12 USD · 21,0 MXN (tocca i pulsanti sopra per il cambio live).
+    Riferimento 30/10/2026: 1 EUR ≈ 55,7 TRY · 1,12 USD · 21,0 MXN. I pulsanti blu sopra impostano la valuta
+    (senza aprire nessuna pagina); il link "cambio live ↗" nella barra della valuta apre Google Finance solo quando ti serve.
     Seleziona la quotazione come la vedi sul convertitore: "1 EUR = 55,7 TRY" è la forma più comune.
     Yield effettivo in € = (cedone + rimborso a cambio stimato − costo) ÷ costo, annualizzato sull'orizzonte;
     cambio stimato = cambio attuale × (1 − svalutazione)^(mesi/12). Stima tua della svalutazione: è l'ipotesi chiave.
@@ -667,7 +673,8 @@ function setCcy(code, rif) {
   $("fxSpot").value = String(rif);            // col punto: input type=number rifiuta la virgola
   $("fxCcyBox").style.display = "flex";
   $("fxCcyLabel").innerHTML = code + " · 1 EUR = " + String(rif).replace(".", ",") + " " + code +
-    ' <span style="font-weight:400;font-size:11px">(rif. 30/10/26 — aggiorna col live)</span>';
+    ' <span style="font-weight:400;font-size:11px">(rif. 30/10/26)</span>' +
+    '<a href="https://www.google.com/finance/quote/EUR-' + code + '" target="_blank">cambio live ↗</a>';
 }
 function calcFx() {
   const nom = num("fxNom"), ced = num("fxCed"), pz = num("fxPrezzo"),
@@ -738,6 +745,6 @@ function calcBond() {
     card("Cedola nominale (%)", nf(cedEur / nom * 100) + " %");
 }
 </script>
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" nonce="4h7nnTnS5qmBrAIS96eMvA==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092" integrity="sha512-UKNk8GbxkABxKcXYuLkO16EleLGUkcvJWtpSNmExE0Too3ZaFAxTscNWEc1OdAv5/BikHawapSCaiD2XCmp+Bw==" nonce="GijMTdkBMs8d3EZKQPtTLw==" data-cf-beacon='{"version":"2024.11.0","token":"36b4216ae2dc4d5488c249161e71fe1e","spa":2}' crossorigin="anonymous"></script>
 </body>
 </html>
