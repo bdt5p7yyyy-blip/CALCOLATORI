@@ -178,7 +178,7 @@
 
 <!-- ================= STRATEGIA ================= -->
 <section id="strat">
-  <h2>Strategia a 2 gambe — P/L al variare del sottostante</h2>
+  <h2>Strategia fino a 3 gambe — P/L al variare del sottostante</h2>
   <div class="grid">
     <div class="full"><label for="s0">Prezzo attuale del sottostante S₀</label><input id="s0" type="number" inputmode="decimal" placeholder="es. 100" /></div>
 
@@ -209,12 +209,27 @@
         <div><label for="l2P">Parità P</label><input id="l2P" type="number" inputmode="decimal" value="1" /></div>
       </div>
     </fieldset>
+
+    <fieldset class="leg off" id="leg3Box">
+      <legend>Gamba 3 (opzionale)<span class="dist" id="l3Dist"></span></legend>
+      <div class="grid">
+        <div><label for="l3Tipo">Tipo</label>
+          <select id="l3Tipo"><option value="put">Put</option><option value="call">Call</option></select></div>
+        <div><label for="l3Verso">Verso</label>
+          <select id="l3Verso"><option value="buy">Acquisto</option><option value="sell">Vendita</option></select></div>
+        <div><label for="l3K">Strike K</label><input id="l3K" type="number" inputmode="decimal" placeholder="es. 80" /></div>
+        <div><label for="l3Prem">Premio per strum.</label><input id="l3Prem" type="number" inputmode="decimal" placeholder="es. 0.8" /></div>
+        <div><label for="l3N">N. strumenti</label><input id="l3N" type="number" inputmode="numeric" placeholder="es. 100" /></div>
+        <div><label for="l3P">Parità P</label><input id="l3P" type="number" inputmode="decimal" value="1" /></div>
+      </div>
+    </fieldset>
   </div>
   <button class="btn" onclick="calcStrat()">Calcola strategia</button>
   <div class="results" id="sOut"></div>
   <div class="legend">
     <span><b style="background:#60a5fa"></b>Gamba 1</span>
     <span><b style="background:#fbbf24"></b>Gamba 2</span>
+    <span><b style="background:#a78bfa"></b>Gamba 3</span>
     <span><b style="background:#f8fafc;height:4px"></b>P/L totale</span>
     <span><b style="background:#f87171;height:4px;width:8px;border-radius:50%"></b>Break-even</span>
   </div>
@@ -222,7 +237,7 @@
   <div class="note">
     P/L calcolato <b>a scadenza</b> (solo valore intrinseco, valore tempo ignorato). Liquidazione standard max(S−K,0) / max(K−S,0):
     per CW su valute con liquidazione ÷S usa la tab Payoff per la singola gamba. Parità P = CW per 1 azione (per CW su valute: 1/parità del KID).
-    Lascia N. strumenti vuoto o 0 nella Gamba 2 per usarne una sola.
+    Lascia N. strumenti vuoto o 0 nelle Gambe 2 e 3 per non usarle. Con 2-3 put a strike decrescenti costruisci la "scala difensiva" (put ladder).
   </div>
   <button class="btn ghost" onclick="exportPDF()">🖨️ Esporta riassunto in PDF</button>
 </section>
@@ -326,7 +341,7 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
 /* ---------- Distanza % strike vs sottostante (live) ---------- */
 function updDist() {
   const S0 = num("s0");
-  [["l1","l1Dist"],["l2","l2Dist"]].forEach(function(pair) {
+  [["l1","l1Dist"],["l2","l2Dist"],["l3","l3Dist"]].forEach(function(pair) {
     const el = $(pair[1]), K = num(pair[0] + "K"), tipo = $(pair[0] + "Tipo").value;
     if (isNaN(S0) || S0 <= 0 || isNaN(K) || K <= 0) { el.textContent = ""; el.classList.remove("on"); return; }
     const d = (K - S0) / S0 * 100;
@@ -361,8 +376,8 @@ function updDist() {
     hD.textContent = "K vs S\u2080: " + (dH >= 0 ? "+" : "") + dH.toFixed(1).replace(".", ",") + "% · " + hTag;
   }
 }
-["s0", "l1K", "l2K", "pStrike", "pS", "hK", "hS0"].forEach(function(id) { $(id).addEventListener("input", updDist); });
-["pTipo", "pVerso", "l1Tipo", "l1Verso", "l2Tipo", "l2Verso"].forEach(function(id) { $(id).addEventListener("change", updDist); });
+["s0", "l1K", "l2K", "l3K", "pStrike", "pS", "hK", "hS0"].forEach(function(id) { $(id).addEventListener("input", updDist); });
+["pTipo", "pVerso", "l1Tipo", "l1Verso", "l2Tipo", "l2Verso", "l3Tipo", "l3Verso"].forEach(function(id) { $(id).addEventListener("change", updDist); });
 
 /* ---------- 1. Payoff ---------- */
 function calcPayoff() {
@@ -427,12 +442,12 @@ function legLabel(leg) {
 
 function calcStrat() {
   const S0 = num("s0");
-  const l1 = readLeg("l1"), l2 = readLeg("l2");
+  const l1 = readLeg("l1"), l2 = readLeg("l2"), l3 = readLeg("l3");
   if (isNaN(S0) || S0 <= 0) return void ($("sOut").innerHTML = err("Inserisci il prezzo attuale del sottostante S₀."));
-  if (!l1.attiva && !l2.attiva) return void ($("sOut").innerHTML = err("Compila almeno la Gamba 1 (K, premio, N., P)."));
+  if (!l1.attiva && !l2.attiva && !l3.attiva) return void ($("sOut").innerHTML = err("Compila almeno la Gamba 1 (K, premio, N., P)."));
 
-  const tot = S => legPnl(l1, S) + legPnl(l2, S);
-  const legs = [l1, l2].filter(l => l.attiva);
+  const tot = S => legPnl(l1, S) + legPnl(l2, S) + legPnl(l3, S);
+  const legs = [l1, l2, l3].filter(l => l.attiva);
 
   // premi: netto versato (buy) / incassato (sell)
   let netPremi = 0;
@@ -471,33 +486,34 @@ function calcStrat() {
 
   // P/L a S0
   const pnl0 = tot(S0);
-  const pnl1 = legPnl(l1, S0), pnl2 = legPnl(l2, S0);
+  const pnl1 = legPnl(l1, S0), pnl2 = legPnl(l2, S0), pnl3 = legPnl(l3, S0);
 
   const fmt = v => (v >= 0 ? "+" : "") + nf(v) + " €";
   $("sOut").innerHTML =
     card("Strategia", legs.map(legLabel).join("<br>") ) +
     card("Premi netti (costo/incasso)", fmt(netPremi), netPremi >= 0 ? "pos" : "neg") +
     card("<b>P/L totale a scadenza con S = " + nf(S0, 4) + "</b>", fmt(pnl0), pnl0 >= 0 ? "pos" : "neg") +
-    card("di cui Gamba 1 / Gamba 2", fmt(pnl1) + " / " + fmt(pnl2)) +
+    card("di cui Gamba 1 / 2 / 3", fmt(pnl1) + " / " + fmt(pnl2) + " / " + fmt(pnl3)) +
     card("Max profitto (a scadenza)", hasBuyCall ? "Illimitato" : fmt(maxY), "pos") +
     card("Max perdita (a scadenza)", hasSellCall ? "Illimitato" : fmt(minY), "neg") +
     card("Break-even (S dove P/L = 0)", bes.length ? bes.map(b => nf(b, 4)).join(" · ") : "nessuno", "neutral");
 
-  drawChart(l1, l2, tot, S0, xMax, bes, pnl0);
-  buildScenTable(S0, l1, l2, tot);
+  drawChart([l1, l2, l3], tot, S0, xMax, bes, pnl0);
+  buildScenTable(S0, l1, l2, l3, tot);
 }
 
-function buildScenTable(S0, l1, l2, tot) {
+function buildScenTable(S0, l1, l2, l3, tot) {
   const variaz = [20, 10, 0, -10, -20, -30, -40, -50];
   const dec = S0 >= 20 ? 2 : 4;
-  let html = '<table class="scen"><tr><th>Variazione</th><th>S a scadenza</th><th>Gamba 1</th><th>Gamba 2</th><th>P/L totale</th></tr>';
+  let html = '<table class="scen"><tr><th>Variazione</th><th>S a scadenza</th><th>Gamba 1</th><th>Gamba 2</th><th>Gamba 3</th><th>P/L totale</th></tr>';
   variaz.forEach(v => {
     const S = S0 * (1 + v / 100);
-    const p1 = legPnl(l1, S), p2 = legPnl(l2, S), t = tot(S);
+    const p1 = legPnl(l1, S), p2 = legPnl(l2, S), p3 = legPnl(l3, S), t = tot(S);
     const cl = t > 0 ? "pos" : t < 0 ? "neg" : "neutral";
     html += '<tr><td>' + (v > 0 ? "+" : "") + v + '%</td><td>' + nf(S, dec) + '</td>' +
       '<td class="' + (p1 >= 0 ? "pos" : "neg") + '">' + (p1 >= 0 ? "+" : "") + nf(p1) + '</td>' +
       '<td class="' + (p2 >= 0 ? "pos" : "neg") + '">' + (p2 >= 0 ? "+" : "") + nf(p2) + '</td>' +
+      '<td class="' + (p3 >= 0 ? "pos" : "neg") + '">' + (p3 >= 0 ? "+" : "") + nf(p3) + '</td>' +
       '<td class="' + cl + '"><b>' + (t >= 0 ? "+" : "") + nf(t) + '</b></td></tr>';
   });
   html += '</table>';
@@ -506,17 +522,17 @@ function buildScenTable(S0, l1, l2, tot) {
   el.innerHTML = html;
 }
 
-function drawChart(l1, l2, tot, S0, xMax, bes, pnl0) {
+function drawChart(lA, tot, S0, xMax, bes, pnl0) {
   const W = 640, H = 320, L = 56, R = 14, T = 16, B = 34;
   const N = 260;
+  const LEGC = ["#60a5fa", "#fbbf24", "#a78bfa"];
   let yMin = 0, yMax = 0;
-  const totPts = [], p1Pts = [], p2Pts = [];
+  const totPts = [], legPts = [[], [], []];
   for (let i = 0; i <= N; i++) {
     const S = xMax * i / N;
     const t = tot(S);
     totPts.push([S, t]);
-    if (l1.attiva) p1Pts.push([S, legPnl(l1, S)]);
-    if (l2.attiva) p2Pts.push([S, legPnl(l2, S)]);
+    for (let j = 0; j < 3; j++) if (lA[j].attiva) legPts[j].push([S, legPnl(lA[j], S)]);
     yMin = Math.min(yMin, t); yMax = Math.max(yMax, t);
   }
   const pad = (yMax - yMin) * 0.12 || Math.abs(yMax || 1) * 0.15;
@@ -538,7 +554,8 @@ function drawChart(l1, l2, tot, S0, xMax, bes, pnl0) {
     yt += '<line x1="' + (L - 4) + '" y1="' + py(y) + '" x2="' + L + '" y2="' + py(y) + '" stroke="#94a3b8"/>' +
       '<text x="' + (L - 7) + '" y="' + (py(y) + 4) + '" font-size="11" fill="#94a3b8" text-anchor="end">' + nf(y, 0) + '</text>';
   }
-  const Kmarks = [l1, l2].filter(l => l.attiva).map((l, i) => {
+  const Kmarks = lA.map((l, i) => {
+    if (!l.attiva) return "";
     const x = px(l.K);
     return '<line x1="' + x + '" y1="' + T + '" x2="' + x + '" y2="' + (H - B) + '" stroke="#475569" stroke-dasharray="4 3"/>' +
       '<text x="' + x + '" y="' + (T + 11) + '" font-size="11" font-weight="700" fill="#cbd5e1" text-anchor="middle">K' + (i + 1) + '</text>';
@@ -550,11 +567,15 @@ function drawChart(l1, l2, tot, S0, xMax, bes, pnl0) {
     '<circle cx="' + px(b) + '" cy="' + py(0) + '" r="5" fill="#f87171"/>' +
     '<text x="' + px(b) + '" y="' + (py(0) - 10) + '" font-size="11" font-weight="700" fill="#f87171" text-anchor="middle">BE</text>').join("");
 
+  let legPaths = "";
+  legPts.forEach(function(pts, j) {
+    if (pts.length) legPaths += '<path d="' + path(pts) + '" fill="none" stroke="' + LEGC[j] + '" stroke-width="2" opacity="0.65"/>';
+  });
+
   $("chart").innerHTML =
     '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:12px">' +
     xt + yt + Kmarks + S0mark + zero +
-    (l1.attiva ? '<path d="' + path(p1Pts) + '" fill="none" stroke="#60a5fa" stroke-width="2" opacity="0.65"/>' : "") +
-    (l2.attiva ? '<path d="' + path(p2Pts) + '" fill="none" stroke="#fbbf24" stroke-width="2" opacity="0.65"/>' : "") +
+    legPaths +
     '<path d="' + path(totPts) + '" fill="none" stroke="#f8fafc" stroke-width="3.5"/>' +
     beDots +
     '<circle cx="' + px(S0) + '" cy="' + py(pnl0) + '" r="5" fill="#f8fafc"/>' +
@@ -595,10 +616,10 @@ function buildPDF(rows) {
 }
 function exportPDF() {
   const S0 = num("s0");
-  const l1 = readLeg("l1"), l2 = readLeg("l2");
-  if (isNaN(S0) || (!l1.attiva && !l2.attiva)) return alert("Prima calcola la strategia, poi esporta.");
-  const tot = S => legPnl(l1, S) + legPnl(l2, S);
-  const legs = [l1, l2].filter(l => l.attiva);
+  const l1 = readLeg("l1"), l2 = readLeg("l2"), l3 = readLeg("l3");
+  if (isNaN(S0) || (!l1.attiva && !l2.attiva && !l3.attiva)) return alert("Prima calcola la strategia, poi esporta.");
+  const tot = S => legPnl(l1, S) + legPnl(l2, S) + legPnl(l3, S);
+  const legs = [l1, l2, l3].filter(l => l.attiva);
   const fmt = v => (v >= 0 ? "+" : "") + nf(v) + " €";
   let netPremi = 0;
   legs.forEach(l => netPremi += (l.verso === "buy" ? -1 : 1) * l.prem * l.N);
@@ -659,7 +680,7 @@ function exportPDF() {
    "Break-even: " + (bes.length ? bes.map(b => nf(b, 4)).join(" ; ") : "nessuno")
   ].forEach(t => { rows.push({ x: 40, y: y, t: t, size: 9, bold: true }); y -= 14; });
   y -= 6;
-  hcell(40, "Variaz. S"); hcell(110, "S scadenza"); hcell(190, "Gamba 1"); hcell(270, "Gamba 2"); hcell(350, "P/L totale");
+  hcell(40, "Variaz. S"); hcell(110, "S scadenza"); hcell(190, "Gamba 1"); hcell(270, "Gamba 2"); hcell(350, "Gamba 3"); hcell(430, "P/L totale");
   y -= 12;
   variaz.forEach(v => {
     const S = S0 * (1 + v / 100), t = tot(S);
@@ -668,7 +689,8 @@ function exportPDF() {
     cell(110, nf(S, dec));
     cell(190, fmt(legPnl(l1, S)));
     cell(270, fmt(legPnl(l2, S)));
-    cell(350, fmt(t), true);
+    cell(350, fmt(legPnl(l3, S)));
+    cell(430, fmt(t), true);
     y -= 12;
   });
   y -= 8;
