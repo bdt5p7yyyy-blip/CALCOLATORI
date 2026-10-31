@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="it">
 <head>
@@ -144,6 +145,7 @@
   <button data-tab="payoff" class="active">Payoff</button>
   <button data-tab="strat">Strategia</button>
   <button data-tab="hedge">Hedge</button>
+  <button data-tab="cover">Coperchio</button>
   <button data-tab="fx">Bond FX</button>
   <button data-tab="bond">Obbligazioni</button>
 </nav>
@@ -260,6 +262,27 @@
     Ipotesi: il portafoglio si muove come il sottostante (beta = 1) e valori calcolati <b>a scadenza</b> (valore tempo ignorato).
     N = X ÷ S₀ × P × protezione%. Con put su CW su valute: P = 1/parità del KID, e per liquidazione ÷S usa la tab Payoff.
     Se il portafoglio non è il sottostante stesso (es. un paniere), questo è un'approssimazione: regola N in base alla beta reale.
+  </div>
+</section>
+
+<!-- ================= COPERCCHIO (delta di crash + ladder) ================= -->
+<section id="cover">
+  <h2>Coperchio — Delta di crash &amp; ladder put Nasdaq</h2>
+  <div class="grid">
+    <div><label for="cX">Blocco da coprire (€)</label><input id="cX" type="number" inputmode="decimal" placeholder="es. 30000" /></div>
+    <div><label for="cFallB">Caduta del blocco (%) — in assoluto</label><input id="cFallB" type="number" inputmode="decimal" placeholder="es. 3,2 = −3,2%" /></div>
+    <div><label for="cFallI">Caduta dell'indice (%) — in assoluto</label><input id="cFallI" type="number" inputmode="decimal" placeholder="es. 3,46 = −3,46%" /></div>
+    <div><label for="cMarg">Margine extra sul delta (%)</label><input id="cMarg" type="number" inputmode="decimal" value="0" /></div>
+    <div><label for="cCed">Cedola attesa del blocco (%/anno)</label><input id="cCed" type="number" inputmode="decimal" placeholder="es. 20 (opzionale)" /></div>
+    <div><label for="cPremA">Premio annuo trancia K −15% (%)</label><input id="cPremA" type="number" inputmode="decimal" value="2.2" /></div>
+    <div><label for="cPremB">Premio annuo trancia K −30% (%)</label><input id="cPremB" type="number" inputmode="decimal" value="0.35" /></div>
+  </div>
+  <button class="btn" onclick="calcCover()">Calcola coperchio</button>
+  <div class="results" id="cOut"></div>
+  <div class="note">
+    Il delta si misura sul registro: <b>caduta del blocco ÷ caduta del Nasdaq-100</b> nei giorni rossi gravi — non nelle giornate nervose (MAGO lì sembra difensivo: la gamma corta arriva nel crash vero).
+    Riferimenti pronti: gemelli FEPI+FEGI ≈ 1,0–1,1; con MAGO nel blocco ≈ 1,2. Premi di riferimento Black-Scholes (12 mesi, IV 20–25%): −15% OTM ≈ 1,6–2,8%/anno; −30% OTM ≈ 0,2–0,5%.
+    Per i CW reali vale la regola: <b>a parità di strike/scadenza vince il premio più basso</b> — confronta gli emittenti a ogni rinnovo semestrale.
   </div>
 </section>
 
@@ -759,6 +782,57 @@ function calcHedge() {
   html += '</table>';
   let el = $("hTable");
   if (!el) { el = document.createElement("div"); el.id = "hTable"; $("hOut").after(el); }
+  el.innerHTML = html;
+}
+
+/* ---------- 3b. Coperchio: delta di crash + ladder put ---------- */
+function calcCover() {
+  const X = num("cX"), fb = num("cFallB"), fi = num("cFallI");
+  let marg = num("cMarg"); if (isNaN(marg)) marg = 0;
+  const ced = num("cCed"), pa = num("cPremA"), pb = num("cPremB");
+  if (isNaN(X) || X <= 0 || isNaN(fb) || fb <= 0 || isNaN(fi) || fi <= 0 || isNaN(pa) || pa < 0 || isNaN(pb) || pb < 0 || marg < 0)
+    return void ($("cOut").innerHTML = err("Compila blocco e cadute (in assoluto, es. 3,2 = −3,2%). Premi e margine ≥ 0."));
+
+  const delta = fb / fi;                       // delta di crash misurato
+  const notion = X * delta * (1 + marg / 100); // nozionale da assicurare
+  const notA = notion / 2, notB = notion / 2;
+  const premA = notA * pa / 100, premB = notB * pb / 100;
+  const tot = premA + premB;
+  const fmt = v => (v >= 0 ? "+" : "") + nf(v) + " €";
+
+  let warn = "";
+  if (delta < 0.5) warn = card("Attenzione", "delta basso: caduta misurata su giornata nervosa? Nel crash vero può salire (gamma)", "neg");
+  if (delta > 1.5) warn += card("Attenzione", "delta alto: verifica i dati, oppure stai già gonfiando il nozionale", "neg");
+
+  let cards =
+    card("<b>Delta di crash misurato</b>", nf(delta, 2) + "×", "neutral") +
+    warn +
+    card("<b>Nozionale da assicurare</b>", nf(notion) + " € (blocco × delta" + (marg > 0 ? " × 1+" + nf(marg, 0) + "%" : "") + ")", "pos") +
+    card("Trancia A · K −15% (50%)", nf(notA) + " € → premio " + nf(premA) + " €/anno", "neutral") +
+    card("Trancia B · K −30% (50%)", nf(notB) + " € → premio " + nf(premB) + " €/anno", "neutral") +
+    card("<b>Premio totale annuo</b>", nf(tot) + " € = " + nf(tot / X * 100) + "% del blocco", tot / X < 0.05 ? "pos" : "neg");
+  if (!isNaN(ced) && ced > 0)
+    cards += card("Incidenza sulla cedola", nf(tot / (X * ced / 100) * 100) + "% del flusso (" + nf(X * ced / 100) + " €/anno)", tot / (X * ced / 100) < 0.15 ? "pos" : "neg");
+  $("cOut").innerHTML = cards;
+
+  // scenari d'incendio: cosa paga la ladder per ogni caduta dell'indice
+  const cadute = [10, 20, 30, 40, 50];
+  const pay = (v, soglia, not) => not * Math.max(0, v - soglia) / 100;
+  let html = '<table class="scen"><tr><th>Caduta indice</th><th>Perdita blocco</th><th>Incassa tr. A</th><th>Incassa tr. B</th><th>Netto con coperchio</th><th>Solo blocco</th></tr>';
+  cadute.forEach(v => {
+    const perd = -X * delta * v / 100;
+    const a = pay(v, 15, notA), b = pay(v, 30, notB);
+    const netto = perd + a + b;
+    html += '<tr><td>−' + v + '%</td>' +
+      '<td class="neg">' + fmt(perd) + '</td>' +
+      '<td class="' + (a > 0 ? "pos" : "neg") + '">' + (a > 0 ? fmt(a) : "—") + '</td>' +
+      '<td class="' + (b > 0 ? "pos" : "neg") + '">' + (b > 0 ? fmt(b) : "—") + '</td>' +
+      '<td class="' + (netto >= 0 ? "pos" : "neg") + '"><b>' + fmt(netto) + '</b></td>' +
+      '<td class="neg">' + fmt(perd) + '</td></tr>';
+  });
+  html += '</table>';
+  let el = $("cTable");
+  if (!el) { el = document.createElement("div"); el.id = "cTable"; $("cOut").after(el); }
   el.innerHTML = html;
 }
 
