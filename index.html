@@ -299,8 +299,10 @@
 
 <!-- ================= OBBLIGAZIONI ================= -->
 <section id="bond">
-  <h2>Rendimento Immediato Obbligazioni</h2>
+  <h2>Obbligazioni — Rendimento e Prezzo Max</h2>
   <div class="grid">
+    <div><label for="oMode">Modalità</label>
+      <select id="oMode"><option value="rend">Prezzo → Rendimento</option><option value="prez">Rendimento → Prezzo max</option></select></div>
     <div><label for="oNom">Nominale (€)</label><input id="oNom" type="number" inputmode="decimal" placeholder="es. 1000" /></div>
     <div><label for="oCed">Cedola annua</label><input id="oCed" type="number" inputmode="decimal" placeholder="es. 4" /></div>
     <div><label for="oCedTipo">Cedola espressa in</label>
@@ -308,11 +310,11 @@
     <div><label for="oPrezzo">Prezzo pagato</label><input id="oPrezzo" type="number" inputmode="decimal" placeholder="es. 95" /></div>
     <div><label for="oPrezzoTipo">Prezzo in</label>
       <select id="oPrezzoTipo"><option value="pct">% del nominale</option><option value="eur">€</option></select></div>
+    <div><label for="oYld">Rendimento desiderato (%)</label><input id="oYld" type="number" inputmode="decimal" placeholder="es. 4.5" /></div>
   </div>
   <button class="btn" onclick="calcBond()">Calcola</button>
   <div class="results" id="oOut"></div>
-  <div class="note">Rendimento immediato = cedola annua ÷ capitale investito. Non calcola il TWR a scadenza
-    (mancano scadenza e prezzo di rimborso).</div>
+  <div class="note">Modalità "Rendimento → Prezzo max": compila nominale, cedola e rendimento desiderato (il campo prezzo si ignora) e ottieni il prezzo massimo a cui pagare il bond per garantire quel rendimento immediato. Rendimento immediato = cedola annua ÷ capitale investito. Non calcola il TWR a scadenza (mancano scadenza e prezzo di rimborso).</div>
 </section>
 
 </main>
@@ -821,10 +823,28 @@ function calcFx() {
 
 /* ---------- 5. Obbligazioni ---------- */
 function calcBond() {
-  const nom = num("oNom"), ced = num("oCed"), pz = num("oPrezzo");
-  if ([nom, ced, pz].some(isNaN) || nom <= 0 || pz <= 0)
-    return void ($("oOut").innerHTML = err("Compila tutti i campi (nominale e prezzo > 0)."));
+  const nom = num("oNom"), ced = num("oCed");
+  if (isNaN(nom) || nom <= 0 || isNaN(ced))
+    return void ($("oOut").innerHTML = err("Compila nominale (> 0) e cedola."));
   const cedEur = $("oCedTipo").value === "pct" ? nom * ced / 100 : ced;
+  if ($("oMode").value === "prez") {
+    const yld = num("oYld");
+    if (isNaN(yld) || yld <= 0)
+      return void ($("oOut").innerHTML = err("Inserisci il rendimento desiderato (> 0)."));
+    const capMax = cedEur / (yld / 100);
+    const pzMaxPct = capMax / nom * 100;
+    const diff = nom - capMax;
+    $("oOut").innerHTML =
+      card("<b>Prezzo max di riferimento</b>", nf(pzMaxPct) + " % del nominale", "neutral") +
+      card("Equivale a (per il nominale inserito)", nf(capMax) + " €") +
+      card("Cedola incassata all'anno", nf(cedEur) + " €") +
+      card("Gain/loss a rimborso al nominale", (diff >= 0 ? "+" : "") + nf(diff) + " €", diff >= 0 ? "pos" : "neg") +
+      card("Rendi a questo prezzo", nf(yld) + " % esatti", "pos");
+    return;
+  }
+  const pz = num("oPrezzo");
+  if (isNaN(pz) || pz <= 0)
+    return void ($("oOut").innerHTML = err("In modalita' rendimento compila il prezzo (> 0)."));
   const capInv = $("oPrezzoTipo").value === "pct" ? nom * pz / 100 : pz;
   const rend = cedEur / capInv * 100;
   const diff = nom - capInv;
