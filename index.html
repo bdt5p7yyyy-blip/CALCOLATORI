@@ -276,6 +276,7 @@
     <div><label for="cCed">Cedola attesa del blocco (%/anno)</label><input id="cCed" type="number" inputmode="decimal" placeholder="es. 20 (opzionale)" /></div>
     <div><label for="cPremA">Premio annuo trancia K −15% (%)</label><input id="cPremA" type="number" inputmode="decimal" value="2.2" /></div>
     <div><label for="cPremB">Premio annuo trancia K −30% (%)</label><input id="cPremB" type="number" inputmode="decimal" value="0.35" /></div>
+    <div><label for="cDig">Perdita digeribile (€) — opzionale</label><input id="cDig" type="number" inputmode="decimal" placeholder="es. 6000" /></div>
   </div>
   <button class="btn" onclick="calcCover()">Calcola coperchio</button>
   <div class="results" id="cOut"></div>
@@ -815,14 +816,19 @@ function calcCover() {
     cards += card("Incidenza sulla cedola", nf(tot / (X * ced / 100) * 100) + "% del flusso (" + nf(X * ced / 100) + " €/anno)", tot / (X * ced / 100) < 0.15 ? "pos" : "neg");
   $("cOut").innerHTML = cards;
 
-  // scenari d'incendio: cosa paga la ladder per ogni caduta dell'indice
-  const cadute = [10, 20, 30, 40, 50];
+  // scenari d'incendio: cosa paga la ladder per ogni caduta dell'indice — fino al −100%
+  // progetto dal rovinoso: il punto peggiore non è a −100% ma all'inizio della zona assicurata
+  const cadute = [10, 15, 20, 25, 30, 35, 40, 50, 60, 80, 100];
   const pay = (v, soglia, not) => not * Math.max(0, v - soglia) / 100;
+  let worst = null;
   let html = '<table class="scen"><tr><th>Caduta indice</th><th>Perdita blocco</th><th>Incassa tr. A</th><th>Incassa tr. B</th><th>Netto con coperchio</th><th>Solo blocco</th></tr>';
   cadute.forEach(v => {
-    const perd = -X * delta * v / 100;
+    // vicino al −100% il delta si spegne: tutto converge alla perdita piena (delta→1, cap a 1)
+    const m = delta + (1 - delta) * v / 100;
+    const perd = -X * Math.min(1, m * v / 100);
     const a = pay(v, 15, notA), b = pay(v, 30, notB);
     const netto = perd + a + b;
+    if (worst === null || netto < worst.netto) worst = { v: v, netto: netto };
     html += '<tr><td>−' + v + '%</td>' +
       '<td class="neg">' + fmt(perd) + '</td>' +
       '<td class="' + (a > 0 ? "pos" : "neg") + '">' + (a > 0 ? fmt(a) : "—") + '</td>' +
@@ -831,9 +837,18 @@ function calcCover() {
       '<td class="neg">' + fmt(perd) + '</td></tr>';
   });
   html += '</table>';
+  // verdetto: punto peggiore del pavimento e confronto con la perdita digeribile
+  let verd = card("<b>Punto peggiore del coperchio</b>", fmt(worst.netto) + " (indice −" + worst.v + "%)", worst.netto >= 0 ? "pos" : "neg");
+  const dig = num("cDig");
+  if (!isNaN(dig) && dig > 0) {
+    if (-worst.netto > dig)
+      verd += card("Sfora la perdita digeribile", fmt(-worst.netto - dig) + " € oltre il limite di " + nf(dig, 0) + " € → allarga il rapporto o restringi la franchigia", "neg");
+    else
+      verd += card("Dentro la perdita digeribile", "margine " + fmt(dig + worst.netto) + " sotto il limite di " + nf(dig, 0) + " €", "pos");
+  }
   let el = $("cTable");
   if (!el) { el = document.createElement("div"); el.id = "cTable"; $("cOut").after(el); }
-  el.innerHTML = html;
+  el.innerHTML = verd + html;
 }
 
 /* ---------- 4. Bond FX (yield effettivo in EUR) ---------- */
