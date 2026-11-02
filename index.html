@@ -305,8 +305,7 @@
     <div><label for="fxQuote">Quotazione del cambio</label>
       <select id="fxQuote"><option value="eur">1 EUR = X valuta</option><option value="val">1 valuta = Y €</option></select></div>
     <div><label for="fxSpot">Cambio X o Y</label><input id="fxSpot" type="number" inputmode="decimal" placeholder="es. 55.7" /></div>
-    <div><label for="fxOriz">Orizzonte</label>
-      <select id="fxOriz"><option value="3">3 mesi</option><option value="6">6 mesi</option><option value="9">9 mesi</option><option value="12" selected>12 mesi</option></select></div>
+    <div><label for="fxScad">Data di scadenza del bond (o orizzonte)</label><input id="fxScad" type="date" /></div>
     <div class="full"><label for="fxSval">Svalutazione annua della valuta stimata (%)</label><input id="fxSval" type="number" inputmode="decimal" placeholder="es. 20" /></div>
   </div>
   <button class="btn" onclick="calcFx()">Calcola</button>
@@ -316,9 +315,11 @@
     Riferimento 30/10/2026: 1 EUR ≈ 55,7 TRY · 1,12 USD · 21,0 MXN. I pulsanti blu sopra impostano la valuta
     (senza aprire nessuna pagina); il link "cambio live ↗" nella barra della valuta apre Google Finance solo quando ti serve.
     Seleziona la quotazione come la vedi sul convertitore: "1 EUR = 55,7 TRY" è la forma più comune.
-    Le quattro caselle tengono separati capitale e interessi: A = cedone dell'orizzonte (cedola annua × mesi/12)
-    a cambio attuale · B = stesso cedone a cambio stimato S×(1−sval)^(mesi/12) · C = nominale rimborsato a cambio
+    Le quattro caselle tengono separati capitale e interessi: A = cedone dell'orizzonte (cedola annua × giorni/365)
+    a cambio attuale · B = stesso cedone a cambio stimato S×(1−sval)^(giorni/365) · C = nominale rimborsato a cambio
     attuale vs costo (plus incorporata, senza cedole) · D = nominale a cambio stimato vs costo.
+    L'orizzonte è la data di scadenza del bond: il conto è esatto al giorno (frazione di anno = giorni/365),
+    senza limiti di durata.
     Il grafico mostra il P/L TOTALE (capitale + cedole) per scenari di svalutazione annua dallo 0% fino al valore
     impostato, passo 5%. Valori al netto di tasse e commissioni.
   </div>
@@ -866,14 +867,23 @@ function setCcy(code, rif) {
 function calcFx() {
   const nom = num("fxNom"), ced = num("fxCed"), pz = num("fxPrezzo"),
         spot = num("fxSpot"), sval = num("fxSval");
-  const quote = $("fxQuote").value, mesi = parseFloat($("fxOriz").value);
+  const quote = $("fxQuote").value;
+  const scad = $("fxScad").value;                 // yyyy-mm-dd (input type=date)
   if ([nom, ced, pz, spot, sval].some(isNaN) || nom <= 0 || pz <= 0 || spot <= 0 || sval < 0)
     return void ($("fxOut").innerHTML = err("Compila tutti i campi (nominale, prezzo, cambio > 0; svalutazione ≥ 0)."));
+  if (!scad)
+    return void ($("fxOut").innerHTML = err("Compila la data di scadenza del bond."));
+  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const fine = new Date(scad + "T00:00:00");
+  const gg = Math.round((fine - oggi) / 864e5);    // giorni esatti alla scadenza
+  if (gg <= 0)
+    return void ($("fxOut").innerHTML = err("La data di scadenza deve essere nel futuro."));
   $("fxOut").innerHTML = "";
   const chEl = $("fxChart"); if (chEl) chEl.innerHTML = "";
 
   const S0 = quote === "eur" ? 1 / spot : spot;   // € per 1 unità di valuta
-  const f = mesi / 12, d = sval / 100;
+  const f = gg / 365, d = sval / 100;             // frazione esatta di anno (365 gg)
+  const mesi = gg / 365 * 12;                     // mesi equivalenti, solo per display
   const costoVal = nom * pz / 100;                 // capitale investito in valuta
   const costoEur = costoVal * S0;
   const cedoneVal = nom * ced / 100 * f;          // cedone dell'orizzonte in valuta
@@ -891,7 +901,7 @@ function calcFx() {
   const yld = pl / costoEur / f * 100;
 
   $("fxOut").innerHTML =
-    card("<b>A · Cedola lorda (senza svalutazione)</b>", nf(cedoneVal, 2) + " val = " + nf(cedOggi) + " €" + dim(mesi + " mesi, a cambio attuale")) +
+    card("<b>A · Cedola lorda (senza svalutazione)</b>", nf(cedoneVal, 2) + " val = " + nf(cedOggi) + " €" + dim(nf(mesi, 1) + " mesi (" + gg + " giorni), a cambio attuale")) +
     card("<b>B · Cedola lorda (dopo svalutazione)</b>", nf(cedSv) + " €" + dim("a cambio stimato " + nf(SH, 4)), cedSv >= cedOggi ? "pos" : "neg") +
     card("<b>C · Rimborso capitale (senza svalutazione)</b>", nf(rimbOggi) + " €" + dim("plus incorporata") + " " + fmt(plus), plus >= 0 ? "pos" : "neg") +
     card("<b>D · Capitale finale (con svalutazione)</b>", nf(rimbSv) + " €" + dim("vs costo") + " " + fmt(deltaCap), deltaCap >= 0 ? "pos" : "neg") +
@@ -942,7 +952,7 @@ function drawFxChart(cedoneVal, nom, costoEur, S0, f, mesi, svalImp, plImp) {
 
   $("fxChart").innerHTML =
     '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:12px;margin-top:10px">' +
-    '<text x="' + (W / 2) + '" y="' + (T - 4) + '" font-size="12" fill="#cbd5e1" text-anchor="middle">P/L totale (capitale + cedole) a ' + mesi + ' mesi — scenari di svalutazione annua</text>' +
+    '<text x="' + (W / 2) + '" y="' + (T - 4) + '" font-size="12" fill="#cbd5e1" text-anchor="middle">P/L totale (capitale + cedole) a ' + nf(mesi, 1) + ' mesi — scenari di svalutazione annua</text>' +
     g + zero + mark +
     '<path d="' + line + '" fill="none" stroke="#f8fafc" stroke-width="2.5"/>' + dots +
     '<line x1="' + L + '" y1="' + (H - B) + '" x2="' + (W - R) + '" y2="' + (H - B) + '" stroke="#94a3b8"/>' +
