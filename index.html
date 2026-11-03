@@ -146,6 +146,7 @@
   <button data-tab="strat">Strategia</button>
   <button data-tab="hedge">Hedge</button>
   <button data-tab="cover">Coperchio</button>
+  <button data-tab="rendita">Rendita</button>
   <button data-tab="fx">Bond FX</button>
   <button data-tab="bond">Obbligazioni</button>
 </nav>
@@ -288,6 +289,34 @@
 </section>
 
 <!-- ================= BOND FX ================= -->
+<section id="rendita">
+  <h2>Rendita — combinazioni motori + protezione</h2>
+  <div class="grid">
+    <div><label for="rCap">Capitale da investire (€)</label><input id="rCap" type="number" inputmode="decimal" placeholder="es. 100000" /></div>
+    <div><label for="rMarg">Margine ladder (%)</label><input id="rMarg" type="number" inputmode="decimal" value="30" /></div>
+    <div><label for="rPrem">Premio ladder 15/30 BS (%)</label><input id="rPrem" type="number" inputmode="decimal" value="1.13" /></div>
+    <div><label for="rFran">Trancia singola da valutare</label>
+      <select id="rFran"><option value="15">Franchigia −15%</option><option value="20">Franchigia −20%</option><option value="25">Franchigia −25%</option><option value="30">Franchigia −30%</option></select></div>
+  </div>
+  <table class="scen">
+    <tr><th>Motore</th><th>Peso %</th><th>Rendita %</th><th>Delta crash</th></tr>
+    <tr><td>MAGO</td><td><input id="rW1" type="number" inputmode="decimal" value="70" style="width:70px;text-align:right" /></td><td><input id="rY1" type="number" inputmode="decimal" value="41" style="width:70px;text-align:right" /></td><td><input id="rD1" type="number" inputmode="decimal" value="1.5" style="width:70px;text-align:right" /></td></tr>
+    <tr><td>FEPI</td><td><input id="rW2" type="number" inputmode="decimal" value="0" style="width:70px;text-align:right" /></td><td><input id="rY2" type="number" inputmode="decimal" value="26.2" style="width:70px;text-align:right" /></td><td><input id="rD2" type="number" inputmode="decimal" value="1.1" style="width:70px;text-align:right" /></td></tr>
+    <tr><td>FEGI</td><td><input id="rW3" type="number" inputmode="decimal" value="30" style="width:70px;text-align:right" /></td><td><input id="rY3" type="number" inputmode="decimal" value="12.95" style="width:70px;text-align:right" /></td><td><input id="rD3" type="number" inputmode="decimal" value="0.9" style="width:70px;text-align:right" /></td></tr>
+    <tr><td>JEPQ</td><td><input id="rW4" type="number" inputmode="decimal" value="0" style="width:70px;text-align:right" /></td><td><input id="rY4" type="number" inputmode="decimal" value="10.9" style="width:70px;text-align:right" /></td><td><input id="rD4" type="number" inputmode="decimal" value="0.75" style="width:70px;text-align:right" /></td></tr>
+    <tr><td>WINC</td><td><input id="rW5" type="number" inputmode="decimal" value="0" style="width:70px;text-align:right" /></td><td><input id="rY5" type="number" inputmode="decimal" value="10.1" style="width:70px;text-align:right" /></td><td><input id="rD5" type="number" inputmode="decimal" value="0.8" style="width:70px;text-align:right" /></td></tr>
+  </table>
+  <button class="btn" onclick="calcRendita()">Calcola</button>
+  <div class="results" id="rOut"></div>
+  <div class="note">
+    Rendite dichiarate default (snapshot ottobre 2026, modificabili): MAGO 41% · FEPI 26,2% · FEGI 12,95% · JEPQ UCITS 10,9% · WINC 10,1%.
+    Delta di crash misurati/riferimento: MAGO ~1,5 (put vendute amplificano) · FEPI ~1,1 · FEGI ~0,9 · JEPQ ~0,75 (l'overlay ammortizza) · WINC ~0,8.
+    Nozionale ladder = capitale × delta medio × (1+margine). Premio ladder 15/30 a livelli Black-Scholes (IV 22%): su SeDeX aggiungi 15-35% di margini emittenti.
+    Trancia singola: premi BS −15% = 1,99% · −20% = 1,14% · −25% = 0,59% · −30% = 0,27%. Pavimento = franchigia + premio (copertura piena a ratio 1).
+    Regola del cricchetto: se il mercato sale &gt;+8% sopra l'ultimo strike-setting, rinegozia subito la generazione successiva.
+  </div>
+</section>
+
 <section id="fx">
   <h2>Bond in valuta — Yield effettivo in € (USD · MXN · TRY)</h2>
   <div class="links">
@@ -864,6 +893,44 @@ function setCcy(code, rif) {
     ' <span style="font-weight:400;font-size:11px">(rif. 30/10/26)</span>' +
     '<a href="https://www.google.com/finance/quote/EUR-' + code + '" target="_blank">cambio live ↗</a>';
 }
+function calcRendita() {
+  const cap = num("rCap"), marg = num("rMarg"), prem = num("rPrem"), fran = parseFloat($("rFran").value);
+  const eng = [
+    ["MAGO", num("rW1"), num("rY1"), num("rD1")],
+    ["FEPI", num("rW2"), num("rY2"), num("rD2")],
+    ["FEGI", num("rW3"), num("rY3"), num("rD3")],
+    ["JEPQ", num("rW4"), num("rY4"), num("rD4")],
+    ["WINC", num("rW5"), num("rY5"), num("rD5")]
+  ];
+  if (isNaN(cap) || cap <= 0 || isNaN(marg) || isNaN(prem) || eng.some(e => e.slice(1).some(isNaN)))
+    return void ($("rOut").innerHTML = err("Compila capitale, margine, premio e tutti i campi dei motori."));
+  const attivi = eng.filter(e => e[1] > 0);
+  if (!attivi.length)
+    return void ($("rOut").innerHTML = err("Assegna almeno un peso a un motore."));
+  const somma = eng.reduce((s, e) => s + e[1], 0);
+  if (Math.abs(somma - 100) > 0.01)
+    return void ($("rOut").innerHTML = err("La somma dei pesi è " + nf(somma, 1) + "% — deve fare 100%."));
+  const dim = t => ' <span style="font-weight:400;font-size:11px;opacity:.7">' + t + "</span>";
+  const fmt = v => (v >= 0 ? "+" : "") + nf(v, 0) + " €";
+  const rend = attivi.map(e => e[1] / 100 * e[2] / 100 * cap);
+  const tot = rend.reduce((a, b) => a + b, 0);
+  const delta = attivi.reduce((s, e, i) => s + e[1] / 100 * e[3], 0);
+  const noz = cap * delta * (1 + marg / 100);
+  const lad = noz * prem / 100;
+  const fp = { 15: 1.99, 20: 1.14, 25: 0.59, 30: 0.27 }[fran];
+  const sing = noz * fp / 100;
+  const pavPct = fran + fp;
+  const avvisi = delta < 0.5 ? " · ⚠️ delta basso: giornata smorzata, ricalibra prima di fidarti" : (delta > 1.5 ? " · ⚠️ delta alto (put vendute?): la ladder va presa sul serio" : "");
+  $("rOut").innerHTML =
+    attivi.map((e, i) => card("<b>" + e[0] + "</b> · peso " + nf(e[1], 0) + "%", nf(rend[i], 0) + " €/anno" + dim(nf(rend[i] / 12, 0) + " €/mese · rendita " + nf(e[2], 1) + "% · delta " + nf(e[3], 2)))).join("") +
+    card("<b>RENDITA TOTALE</b>", nf(tot, 0) + " €/anno" + dim(nf(tot / 12, 0) + " €/mese"), "pos") +
+    card("<b>Delta di crash medio</b>", nf(delta, 2) + dim("margine " + nf(marg, 0) + "%") + avvisi) +
+    card("<b>Ladder 15/30 — nozionale</b>", nf(noz, 0) + " €" + dim("capitale × delta × (1+margine)")) +
+    card("<b>Ladder 15/30 — costo annuo</b>", nf(lad, 0) + " €" + dim(nf(lad / tot * 100, 1) + "% della rendita · premio " + nf(prem, 2) + "% BS"), lad / tot <= 0.15 ? "pos" : "neg") +
+    card("<b>Trancia −" + fran + "% — costo</b>", nf(sing, 0) + " €" + dim("premio BS " + nf(fp, 2) + "% · " + nf(sing / tot * 100, 1) + "% della rendita")) +
+    card("<b>Pavimento con trancia −" + fran + "%</b>", nf(cap * pavPct / 100, 0) + " € max" + dim("perdita " + nf(pavPct, 1) + "% del blocco, copertura piena a ratio 1"), "neg");
+}
+
 function calcFx() {
   const nom = num("fxNom"), ced = num("fxCed"), pz = num("fxPrezzo"),
         spot = num("fxSpot"), sval = num("fxSval");
