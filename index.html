@@ -145,8 +145,6 @@
   <button data-tab="payoff" class="active">Payoff</button>
   <button data-tab="strat">Strategia</button>
   <button data-tab="hedge">Hedge</button>
-  <button data-tab="cover">Coperchio</button>
-  <button data-tab="rendita">Rendita</button>
   <button data-tab="fx">Bond FX</button>
   <button data-tab="bond">Obbligazioni</button>
 </nav>
@@ -181,7 +179,7 @@
 
 <!-- ================= STRATEGIA ================= -->
 <section id="strat">
-  <h2>Strategia fino a 3 gambe — P/L al variare del sottostante</h2>
+  <h2>Strategia fino a 2 gambe — P/L al variare del sottostante</h2>
   <div class="grid">
     <div class="full"><label for="s0">Prezzo attuale del sottostante S₀</label><input id="s0" type="number" inputmode="decimal" placeholder="es. 100" /></div>
 
@@ -212,27 +210,12 @@
         <div><label for="l2P">Parità P</label><input id="l2P" type="number" inputmode="decimal" value="1" /></div>
       </div>
     </fieldset>
-
-    <fieldset class="leg off" id="leg3Box">
-      <legend>Gamba 3 (opzionale)<span class="dist" id="l3Dist"></span></legend>
-      <div class="grid">
-        <div><label for="l3Tipo">Tipo</label>
-          <select id="l3Tipo"><option value="put">Put</option><option value="call">Call</option></select></div>
-        <div><label for="l3Verso">Verso</label>
-          <select id="l3Verso"><option value="buy">Acquisto</option><option value="sell">Vendita</option></select></div>
-        <div><label for="l3K">Strike K</label><input id="l3K" type="number" inputmode="decimal" placeholder="es. 80" /></div>
-        <div><label for="l3Prem">Premio per strum.</label><input id="l3Prem" type="number" inputmode="decimal" placeholder="es. 0.8" /></div>
-        <div><label for="l3N">N. strumenti</label><input id="l3N" type="number" inputmode="numeric" placeholder="es. 100" /></div>
-        <div><label for="l3P">Parità P</label><input id="l3P" type="number" inputmode="decimal" value="1" /></div>
-      </div>
-    </fieldset>
   </div>
   <button class="btn" onclick="calcStrat()">Calcola strategia</button>
   <div class="results" id="sOut"></div>
   <div class="legend">
     <span><b style="background:#60a5fa"></b>Gamba 1</span>
     <span><b style="background:#fbbf24"></b>Gamba 2</span>
-    <span><b style="background:#a78bfa"></b>Gamba 3</span>
     <span><b style="background:#f8fafc;height:4px"></b>P/L totale</span>
     <span><b style="background:#f87171;height:4px;width:8px;border-radius:50%"></b>Break-even</span>
   </div>
@@ -240,7 +223,7 @@
   <div class="note">
     P/L calcolato <b>a scadenza</b> (solo valore intrinseco, valore tempo ignorato). Liquidazione standard max(S−K,0) / max(K−S,0):
     per CW su valute con liquidazione ÷S usa la tab Payoff per la singola gamba. Parità P = CW per 1 azione (per CW su valute: 1/parità del KID).
-    Lascia N. strumenti vuoto o 0 nelle Gambe 2 e 3 per non usarle. Con 2-3 put a strike decrescenti costruisci la "scala difensiva" (put ladder).
+    Lascia N. strumenti vuoto o 0 nella Gamba 2 per non usarla. Con 2 put a strike decrescenti costruisci la "scala difensiva" (put ladder).
   </div>
   <button class="btn ghost" onclick="exportPDF()">🖨️ Esporta riassunto in PDF</button>
 </section>
@@ -266,63 +249,14 @@
   </div>
 </section>
 
-<!-- ================= COPERCCHIO (delta di crash + ladder) ================= -->
-<section id="cover">
-  <h2>Coperchio — Delta di crash &amp; ladder put Nasdaq</h2>
-  <div class="grid">
-    <div><label for="cX">Blocco da coprire (€)</label><input id="cX" type="number" inputmode="decimal" placeholder="es. 30000" /></div>
-    <div><label for="cFallB">Caduta del blocco (%) — in assoluto</label><input id="cFallB" type="number" inputmode="decimal" placeholder="es. 3,2 = −3,2%" /></div>
-    <div><label for="cFallI">Caduta dell'indice (%) — in assoluto</label><input id="cFallI" type="number" inputmode="decimal" placeholder="es. 3,46 = −3,46%" /></div>
-    <div><label for="cMarg">Margine extra sul delta (%)</label><input id="cMarg" type="number" inputmode="decimal" value="0" /></div>
-    <div><label for="cCed">Cedola attesa del blocco (%/anno)</label><input id="cCed" type="number" inputmode="decimal" placeholder="es. 20 (opzionale)" /></div>
-    <div><label for="cPremA">Premio annuo trancia K −15% (%)</label><input id="cPremA" type="number" inputmode="decimal" value="2.2" /></div>
-    <div><label for="cPremB">Premio annuo trancia K −30% (%)</label><input id="cPremB" type="number" inputmode="decimal" value="0.35" /></div>
-    <div><label for="cDig">Perdita digeribile (€) — opzionale</label><input id="cDig" type="number" inputmode="decimal" placeholder="es. 6000" /></div>
-  </div>
-  <button class="btn" onclick="calcCover()">Calcola coperchio</button>
-  <div class="results" id="cOut"></div>
-  <div class="note">
-    Il delta si misura sul registro: <b>caduta del blocco ÷ caduta del Nasdaq-100</b> nei giorni rossi gravi — non nelle giornate nervose (MAGO lì sembra difensivo: la gamma corta arriva nel crash vero).
-    Riferimenti pronti: gemelli FEPI+FEGI ≈ 1,0–1,1; con MAGO nel blocco ≈ 1,2. Premi di riferimento Black-Scholes (12 mesi, IV 20–25%): −15% OTM ≈ 1,6–2,8%/anno; −30% OTM ≈ 0,2–0,5%.
-    Per i CW reali vale la regola: <b>a parità di strike/scadenza vince il premio più basso</b> — confronta gli emittenti a ogni rinnovo semestrale.
-  </div>
-</section>
-
-<!-- ================= BOND FX ================= -->
-<section id="rendita">
-  <h2>Rendita — combinazioni motori + protezione</h2>
-  <div class="grid">
-    <div><label for="rCap">Capitale da investire (€)</label><input id="rCap" type="number" inputmode="decimal" placeholder="es. 100000" /></div>
-    <div><label for="rMarg">Margine ladder (%)</label><input id="rMarg" type="number" inputmode="decimal" value="30" /></div>
-    <div><label for="rPrem">Premio ladder 15/30 BS (%)</label><input id="rPrem" type="number" inputmode="decimal" value="1.13" /></div>
-    <div><label for="rFran">Trancia singola da valutare</label>
-      <select id="rFran"><option value="15">Franchigia −15%</option><option value="20">Franchigia −20%</option><option value="25">Franchigia −25%</option><option value="30">Franchigia −30%</option></select></div>
-  </div>
-  <table class="scen">
-    <tr><th>Motore</th><th>Peso %</th><th>Rendita %</th><th>Delta crash</th></tr>
-    <tr><td>MAGO</td><td><input id="rW1" type="number" inputmode="decimal" value="70" style="width:70px;text-align:right" /></td><td><input id="rY1" type="number" inputmode="decimal" value="41" style="width:70px;text-align:right" /></td><td><input id="rD1" type="number" inputmode="decimal" value="1.5" style="width:70px;text-align:right" /></td></tr>
-    <tr><td>FEPI</td><td><input id="rW2" type="number" inputmode="decimal" value="0" style="width:70px;text-align:right" /></td><td><input id="rY2" type="number" inputmode="decimal" value="26.2" style="width:70px;text-align:right" /></td><td><input id="rD2" type="number" inputmode="decimal" value="1.1" style="width:70px;text-align:right" /></td></tr>
-    <tr><td>FEGI</td><td><input id="rW3" type="number" inputmode="decimal" value="30" style="width:70px;text-align:right" /></td><td><input id="rY3" type="number" inputmode="decimal" value="12.95" style="width:70px;text-align:right" /></td><td><input id="rD3" type="number" inputmode="decimal" value="0.9" style="width:70px;text-align:right" /></td></tr>
-    <tr><td>JEPQ</td><td><input id="rW4" type="number" inputmode="decimal" value="0" style="width:70px;text-align:right" /></td><td><input id="rY4" type="number" inputmode="decimal" value="10.9" style="width:70px;text-align:right" /></td><td><input id="rD4" type="number" inputmode="decimal" value="0.75" style="width:70px;text-align:right" /></td></tr>
-    <tr><td>WINC</td><td><input id="rW5" type="number" inputmode="decimal" value="0" style="width:70px;text-align:right" /></td><td><input id="rY5" type="number" inputmode="decimal" value="10.1" style="width:70px;text-align:right" /></td><td><input id="rD5" type="number" inputmode="decimal" value="0.8" style="width:70px;text-align:right" /></td></tr>
-  </table>
-  <button class="btn" onclick="calcRendita()">Calcola</button>
-  <div class="results" id="rOut"></div>
-  <div class="note">
-    Rendite dichiarate default (snapshot ottobre 2026, modificabili): MAGO 41% · FEPI 26,2% · FEGI 12,95% · JEPQ UCITS 10,9% · WINC 10,1%.
-    Delta di crash misurati/riferimento: MAGO ~1,5 (put vendute amplificano) · FEPI ~1,1 · FEGI ~0,9 · JEPQ ~0,75 (l'overlay ammortizza) · WINC ~0,8.
-    Nozionale ladder = capitale × delta medio × (1+margine). Premio ladder 15/30 a livelli Black-Scholes (IV 22%): su SeDeX aggiungi 15-35% di margini emittenti.
-    Trancia singola: premi BS −15% = 1,99% · −20% = 1,14% · −25% = 0,59% · −30% = 0,27%. Pavimento = franchigia + premio (copertura piena a ratio 1).
-    Regola del cricchetto: se il mercato sale &gt;+8% sopra l'ultimo strike-setting, rinegozia subito la generazione successiva.
-  </div>
-</section>
 
 <section id="fx">
-  <h2>Bond in valuta — Yield effettivo in € (USD · MXN · TRY)</h2>
+  <h2>Bond in valuta — Yield effettivo in € (USD · MXN · TRY · GBP)</h2>
   <div class="links">
     <button type="button" onclick="setCcy('USD', 1.12)">💱 USD</button>
     <button type="button" onclick="setCcy('MXN', 21.0)">💱 MXN</button>
     <button type="button" onclick="setCcy('TRY', 55.7)">💱 TRY</button>
+    <button type="button" onclick="setCcy('GBP', 0.86)">💱 GBP</button>
   </div>
   <div class="card" id="fxCcyBox" style="display:none">
     <span class="k">Valuta impostata</span><span class="v neutral" id="fxCcyLabel"></span>
@@ -341,7 +275,7 @@
   <div class="results" id="fxOut"></div>
   <div id="fxChart"></div>
   <div class="note">
-    Riferimento 30/10/2026: 1 EUR ≈ 55,7 TRY · 1,12 USD · 21,0 MXN. I pulsanti blu sopra impostano la valuta
+    Riferimento 30/10/2026: 1 EUR ≈ 55,7 TRY · 1,12 USD · 21,0 MXN · 0,86 GBP. I pulsanti blu sopra impostano la valuta
     (senza aprire nessuna pagina); il link "cambio live ↗" nella barra della valuta apre Google Finance solo quando ti serve.
     Seleziona la quotazione come la vedi sul convertitore: "1 EUR = 55,7 TRY" è la forma più comune.
     Le quattro caselle tengono separati capitale e interessi: A = cedone dell'orizzonte (cedola annua × giorni/365)
@@ -402,7 +336,7 @@ document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
 /* ---------- Distanza % strike vs sottostante (live) ---------- */
 function updDist() {
   const S0 = num("s0");
-  [["l1","l1Dist"],["l2","l2Dist"],["l3","l3Dist"]].forEach(function(pair) {
+  [["l1","l1Dist"],["l2","l2Dist"]].forEach(function(pair) {
     const el = $(pair[1]), K = num(pair[0] + "K"), tipo = $(pair[0] + "Tipo").value;
     if (isNaN(S0) || S0 <= 0 || isNaN(K) || K <= 0) { el.textContent = ""; el.classList.remove("on"); return; }
     const d = (K - S0) / S0 * 100;
@@ -437,8 +371,8 @@ function updDist() {
     hD.textContent = "K vs S\u2080: " + (dH >= 0 ? "+" : "") + dH.toFixed(1).replace(".", ",") + "% · " + hTag;
   }
 }
-["s0", "l1K", "l2K", "l3K", "pStrike", "pS", "hK", "hS0"].forEach(function(id) { $(id).addEventListener("input", updDist); });
-["pTipo", "pVerso", "l1Tipo", "l1Verso", "l2Tipo", "l2Verso", "l3Tipo", "l3Verso"].forEach(function(id) { $(id).addEventListener("change", updDist); });
+["s0", "l1K", "l2K", "pStrike", "pS", "hK", "hS0"].forEach(function(id) { $(id).addEventListener("input", updDist); });
+["pTipo", "pVerso", "l1Tipo", "l1Verso", "l2Tipo", "l2Verso"].forEach(function(id) { $(id).addEventListener("change", updDist); });
 
 /* ---------- 1. Payoff ---------- */
 function calcPayoff() {
@@ -503,12 +437,12 @@ function legLabel(leg) {
 
 function calcStrat() {
   const S0 = num("s0");
-  const l1 = readLeg("l1"), l2 = readLeg("l2"), l3 = readLeg("l3");
+  const l1 = readLeg("l1"), l2 = readLeg("l2");
   if (isNaN(S0) || S0 <= 0) return void ($("sOut").innerHTML = err("Inserisci il prezzo attuale del sottostante S₀."));
-  if (!l1.attiva && !l2.attiva && !l3.attiva) return void ($("sOut").innerHTML = err("Compila almeno la Gamba 1 (K, premio, N., P)."));
+  if (!l1.attiva && !l2.attiva) return void ($("sOut").innerHTML = err("Compila almeno la Gamba 1 (K, premio, N., P)."));
 
-  const tot = S => legPnl(l1, S) + legPnl(l2, S) + legPnl(l3, S);
-  const legs = [l1, l2, l3].filter(l => l.attiva);
+  const tot = S => legPnl(l1, S) + legPnl(l2, S);
+  const legs = [l1, l2].filter(l => l.attiva);
 
   // premi: netto versato (buy) / incassato (sell)
   let netPremi = 0;
@@ -547,34 +481,33 @@ function calcStrat() {
 
   // P/L a S0
   const pnl0 = tot(S0);
-  const pnl1 = legPnl(l1, S0), pnl2 = legPnl(l2, S0), pnl3 = legPnl(l3, S0);
+  const pnl1 = legPnl(l1, S0), pnl2 = legPnl(l2, S0);
 
   const fmt = v => (v >= 0 ? "+" : "") + nf(v) + " €";
   $("sOut").innerHTML =
     card("Strategia", legs.map(legLabel).join("<br>") ) +
     card("Premi netti (costo/incasso)", fmt(netPremi), netPremi >= 0 ? "pos" : "neg") +
     card("<b>P/L totale a scadenza con S = " + nf(S0, 4) + "</b>", fmt(pnl0), pnl0 >= 0 ? "pos" : "neg") +
-    card("di cui Gamba 1 / 2 / 3", fmt(pnl1) + " / " + fmt(pnl2) + " / " + fmt(pnl3)) +
+    card("di cui Gamba 1 / 2", fmt(pnl1) + " / " + fmt(pnl2)) +
     card("Max profitto (a scadenza)", hasBuyCall ? "Illimitato" : fmt(maxY), "pos") +
     card("Max perdita (a scadenza)", hasSellCall ? "Illimitato" : fmt(minY), "neg") +
     card("Break-even (S dove P/L = 0)", bes.length ? bes.map(b => nf(b, 4)).join(" · ") : "nessuno", "neutral");
 
-  drawChart([l1, l2, l3], tot, S0, xMax, bes, pnl0);
-  buildScenTable(S0, l1, l2, l3, tot);
+  drawChart([l1, l2], tot, S0, xMax, bes, pnl0);
+  buildScenTable(S0, l1, l2, tot);
 }
 
-function buildScenTable(S0, l1, l2, l3, tot) {
+function buildScenTable(S0, l1, l2, tot) {
   const variaz = [20, 10, 0, -10, -20, -30, -40, -50];
   const dec = S0 >= 20 ? 2 : 4;
-  let html = '<table class="scen"><tr><th>Variazione</th><th>S a scadenza</th><th>Gamba 1</th><th>Gamba 2</th><th>Gamba 3</th><th>P/L totale</th></tr>';
+  let html = '<table class="scen"><tr><th>Variazione</th><th>S a scadenza</th><th>Gamba 1</th><th>Gamba 2</th><th>P/L totale</th></tr>';
   variaz.forEach(v => {
     const S = S0 * (1 + v / 100);
-    const p1 = legPnl(l1, S), p2 = legPnl(l2, S), p3 = legPnl(l3, S), t = tot(S);
+    const p1 = legPnl(l1, S), p2 = legPnl(l2, S), t = tot(S);
     const cl = t > 0 ? "pos" : t < 0 ? "neg" : "neutral";
     html += '<tr><td>' + (v > 0 ? "+" : "") + v + '%</td><td>' + nf(S, dec) + '</td>' +
       '<td class="' + (p1 >= 0 ? "pos" : "neg") + '">' + (p1 >= 0 ? "+" : "") + nf(p1) + '</td>' +
       '<td class="' + (p2 >= 0 ? "pos" : "neg") + '">' + (p2 >= 0 ? "+" : "") + nf(p2) + '</td>' +
-      '<td class="' + (p3 >= 0 ? "pos" : "neg") + '">' + (p3 >= 0 ? "+" : "") + nf(p3) + '</td>' +
       '<td class="' + cl + '"><b>' + (t >= 0 ? "+" : "") + nf(t) + '</b></td></tr>';
   });
   html += '</table>';
@@ -586,14 +519,14 @@ function buildScenTable(S0, l1, l2, l3, tot) {
 function drawChart(lA, tot, S0, xMax, bes, pnl0) {
   const W = 640, H = 320, L = 56, R = 14, T = 16, B = 34;
   const N = 260;
-  const LEGC = ["#60a5fa", "#fbbf24", "#a78bfa"];
+  const LEGC = ["#60a5fa", "#fbbf24"];
   let yMin = 0, yMax = 0;
-  const totPts = [], legPts = [[], [], []];
+  const totPts = [], legPts = [[], []];
   for (let i = 0; i <= N; i++) {
     const S = xMax * i / N;
     const t = tot(S);
     totPts.push([S, t]);
-    for (let j = 0; j < 3; j++) if (lA[j].attiva) legPts[j].push([S, legPnl(lA[j], S)]);
+    for (let j = 0; j < 2; j++) if (lA[j].attiva) legPts[j].push([S, legPnl(lA[j], S)]);
     yMin = Math.min(yMin, t); yMax = Math.max(yMax, t);
   }
   const pad = (yMax - yMin) * 0.12 || Math.abs(yMax || 1) * 0.15;
@@ -677,10 +610,10 @@ function buildPDF(rows) {
 }
 function exportPDF() {
   const S0 = num("s0");
-  const l1 = readLeg("l1"), l2 = readLeg("l2"), l3 = readLeg("l3");
-  if (isNaN(S0) || (!l1.attiva && !l2.attiva && !l3.attiva)) return alert("Prima calcola la strategia, poi esporta.");
-  const tot = S => legPnl(l1, S) + legPnl(l2, S) + legPnl(l3, S);
-  const legs = [l1, l2, l3].filter(l => l.attiva);
+  const l1 = readLeg("l1"), l2 = readLeg("l2");
+  if (isNaN(S0) || (!l1.attiva && !l2.attiva)) return alert("Prima calcola la strategia, poi esporta.");
+  const tot = S => legPnl(l1, S) + legPnl(l2, S);
+  const legs = [l1, l2].filter(l => l.attiva);
   const fmt = v => (v >= 0 ? "+" : "") + nf(v) + " €";
   let netPremi = 0;
   legs.forEach(l => netPremi += (l.verso === "buy" ? -1 : 1) * l.prem * l.N);
@@ -741,7 +674,7 @@ function exportPDF() {
    "Break-even: " + (bes.length ? bes.map(b => nf(b, 4)).join(" ; ") : "nessuno")
   ].forEach(t => { rows.push({ x: 40, y: y, t: t, size: 9, bold: true }); y -= 14; });
   y -= 6;
-  hcell(40, "Variaz. S"); hcell(110, "S scadenza"); hcell(190, "Gamba 1"); hcell(270, "Gamba 2"); hcell(350, "Gamba 3"); hcell(430, "P/L totale");
+  hcell(40, "Variaz. S"); hcell(110, "S scadenza"); hcell(190, "Gamba 1"); hcell(270, "Gamba 2"); hcell(350, "P/L totale");
   y -= 12;
   variaz.forEach(v => {
     const S = S0 * (1 + v / 100), t = tot(S);
@@ -750,8 +683,7 @@ function exportPDF() {
     cell(110, nf(S, dec));
     cell(190, fmt(legPnl(l1, S)));
     cell(270, fmt(legPnl(l2, S)));
-    cell(350, fmt(legPnl(l3, S)));
-    cell(430, fmt(t), true);
+    cell(350, fmt(t), true);
     y -= 12;
   });
   y -= 8;
@@ -819,70 +751,6 @@ function calcHedge() {
   el.innerHTML = html;
 }
 
-/* ---------- 3b. Coperchio: delta di crash + ladder put ---------- */
-function calcCover() {
-  const X = num("cX"), fb = num("cFallB"), fi = num("cFallI");
-  let marg = num("cMarg"); if (isNaN(marg)) marg = 0;
-  const ced = num("cCed"), pa = num("cPremA"), pb = num("cPremB");
-  if (isNaN(X) || X <= 0 || isNaN(fb) || fb <= 0 || isNaN(fi) || fi <= 0 || isNaN(pa) || pa < 0 || isNaN(pb) || pb < 0 || marg < 0)
-    return void ($("cOut").innerHTML = err("Compila blocco e cadute (in assoluto, es. 3,2 = −3,2%). Premi e margine ≥ 0."));
-
-  const delta = fb / fi;                       // delta di crash misurato
-  const notion = X * delta * (1 + marg / 100); // nozionale da assicurare
-  const notA = notion / 2, notB = notion / 2;
-  const premA = notA * pa / 100, premB = notB * pb / 100;
-  const tot = premA + premB;
-  const fmt = v => (v >= 0 ? "+" : "") + nf(v) + " €";
-
-  let warn = "";
-  if (delta < 0.5) warn = card("Attenzione", "delta basso: caduta misurata su giornata nervosa? Nel crash vero può salire (gamma)", "neg");
-  if (delta > 1.5) warn += card("Attenzione", "delta alto: verifica i dati, oppure stai già gonfiando il nozionale", "neg");
-
-  let cards =
-    card("<b>Delta di crash misurato</b>", nf(delta, 2) + "×", "neutral") +
-    warn +
-    card("<b>Nozionale da assicurare</b>", nf(notion) + " € (blocco × delta" + (marg > 0 ? " × 1+" + nf(marg, 0) + "%" : "") + ")", "pos") +
-    card("Trancia A · K −15% (50%)", nf(notA) + " € → premio " + nf(premA) + " €/anno", "neutral") +
-    card("Trancia B · K −30% (50%)", nf(notB) + " € → premio " + nf(premB) + " €/anno", "neutral") +
-    card("<b>Premio totale annuo</b>", nf(tot) + " € = " + nf(tot / X * 100) + "% del blocco", tot / X < 0.05 ? "pos" : "neg");
-  if (!isNaN(ced) && ced > 0)
-    cards += card("Incidenza sulla cedola", nf(tot / (X * ced / 100) * 100) + "% del flusso (" + nf(X * ced / 100) + " €/anno)", tot / (X * ced / 100) < 0.15 ? "pos" : "neg");
-  $("cOut").innerHTML = cards;
-
-  // scenari d'incendio: cosa paga la ladder per ogni caduta dell'indice — fino al −100%
-  // progetto dal rovinoso: il punto peggiore non è a −100% ma all'inizio della zona assicurata
-  const cadute = [10, 15, 20, 25, 30, 35, 40, 50, 60, 80, 100];
-  const pay = (v, soglia, not) => not * Math.max(0, v - soglia) / 100;
-  let worst = null;
-  let html = '<table class="scen"><tr><th>Caduta indice</th><th>Perdita blocco</th><th>Incassa tr. A</th><th>Incassa tr. B</th><th>Netto con coperchio</th><th>Solo blocco</th></tr>';
-  cadute.forEach(v => {
-    // vicino al −100% il delta si spegne: tutto converge alla perdita piena (delta→1, cap a 1)
-    const m = delta + (1 - delta) * v / 100;
-    const perd = -X * Math.min(1, m * v / 100);
-    const a = pay(v, 15, notA), b = pay(v, 30, notB);
-    const netto = perd + a + b;
-    if (worst === null || netto < worst.netto) worst = { v: v, netto: netto };
-    html += '<tr><td>−' + v + '%</td>' +
-      '<td class="neg">' + fmt(perd) + '</td>' +
-      '<td class="' + (a > 0 ? "pos" : "neg") + '">' + (a > 0 ? fmt(a) : "—") + '</td>' +
-      '<td class="' + (b > 0 ? "pos" : "neg") + '">' + (b > 0 ? fmt(b) : "—") + '</td>' +
-      '<td class="' + (netto >= 0 ? "pos" : "neg") + '"><b>' + fmt(netto) + '</b></td>' +
-      '<td class="neg">' + fmt(perd) + '</td></tr>';
-  });
-  html += '</table>';
-  // verdetto: punto peggiore del pavimento e confronto con la perdita digeribile
-  let verd = card("<b>Punto peggiore del coperchio</b>", fmt(worst.netto) + " (indice −" + worst.v + "%)", worst.netto >= 0 ? "pos" : "neg");
-  const dig = num("cDig");
-  if (!isNaN(dig) && dig > 0) {
-    if (-worst.netto > dig)
-      verd += card("Sfora la perdita digeribile", fmt(-worst.netto - dig) + " € oltre il limite di " + nf(dig, 0) + " € → allarga il rapporto o restringi la franchigia", "neg");
-    else
-      verd += card("Dentro la perdita digeribile", "margine " + fmt(dig + worst.netto) + " sotto il limite di " + nf(dig, 0) + " €", "pos");
-  }
-  let el = $("cTable");
-  if (!el) { el = document.createElement("div"); el.id = "cTable"; $("cOut").after(el); }
-  el.innerHTML = verd + html;
-}
 
 /* ---------- 4. Bond FX (yield effettivo in EUR) ---------- */
 function setCcy(code, rif) {
@@ -892,43 +760,6 @@ function setCcy(code, rif) {
   $("fxCcyLabel").innerHTML = code + " · 1 EUR = " + String(rif).replace(".", ",") + " " + code +
     ' <span style="font-weight:400;font-size:11px">(rif. 30/10/26)</span>' +
     '<a href="https://www.google.com/finance/quote/EUR-' + code + '" target="_blank">cambio live ↗</a>';
-}
-function calcRendita() {
-  const cap = num("rCap"), marg = num("rMarg"), prem = num("rPrem"), fran = parseFloat($("rFran").value);
-  const eng = [
-    ["MAGO", num("rW1"), num("rY1"), num("rD1")],
-    ["FEPI", num("rW2"), num("rY2"), num("rD2")],
-    ["FEGI", num("rW3"), num("rY3"), num("rD3")],
-    ["JEPQ", num("rW4"), num("rY4"), num("rD4")],
-    ["WINC", num("rW5"), num("rY5"), num("rD5")]
-  ];
-  if (isNaN(cap) || cap <= 0 || isNaN(marg) || isNaN(prem) || eng.some(e => e.slice(1).some(isNaN)))
-    return void ($("rOut").innerHTML = err("Compila capitale, margine, premio e tutti i campi dei motori."));
-  const attivi = eng.filter(e => e[1] > 0);
-  if (!attivi.length)
-    return void ($("rOut").innerHTML = err("Assegna almeno un peso a un motore."));
-  const somma = eng.reduce((s, e) => s + e[1], 0);
-  if (Math.abs(somma - 100) > 0.01)
-    return void ($("rOut").innerHTML = err("La somma dei pesi è " + nf(somma, 1) + "% — deve fare 100%."));
-  const dim = t => ' <span style="font-weight:400;font-size:11px;opacity:.7">' + t + "</span>";
-  const fmt = v => (v >= 0 ? "+" : "") + nf(v, 0) + " €";
-  const rend = attivi.map(e => e[1] / 100 * e[2] / 100 * cap);
-  const tot = rend.reduce((a, b) => a + b, 0);
-  const delta = attivi.reduce((s, e, i) => s + e[1] / 100 * e[3], 0);
-  const noz = cap * delta * (1 + marg / 100);
-  const lad = noz * prem / 100;
-  const fp = { 15: 1.99, 20: 1.14, 25: 0.59, 30: 0.27 }[fran];
-  const sing = noz * fp / 100;
-  const pavPct = fran + fp;
-  const avvisi = delta < 0.5 ? " · ⚠️ delta basso: giornata smorzata, ricalibra prima di fidarti" : (delta > 1.5 ? " · ⚠️ delta alto (put vendute?): la ladder va presa sul serio" : "");
-  $("rOut").innerHTML =
-    attivi.map((e, i) => card("<b>" + e[0] + "</b> · peso " + nf(e[1], 0) + "%", nf(rend[i], 0) + " €/anno" + dim(nf(rend[i] / 12, 0) + " €/mese · rendita " + nf(e[2], 1) + "% · delta " + nf(e[3], 2)))).join("") +
-    card("<b>RENDITA TOTALE</b>", nf(tot, 0) + " €/anno" + dim(nf(tot / 12, 0) + " €/mese"), "pos") +
-    card("<b>Delta di crash medio</b>", nf(delta, 2) + dim("margine " + nf(marg, 0) + "%") + avvisi) +
-    card("<b>Ladder 15/30 — nozionale</b>", nf(noz, 0) + " €" + dim("capitale × delta × (1+margine)")) +
-    card("<b>Ladder 15/30 — costo annuo</b>", nf(lad, 0) + " €" + dim(nf(lad / tot * 100, 1) + "% della rendita · premio " + nf(prem, 2) + "% BS"), lad / tot <= 0.15 ? "pos" : "neg") +
-    card("<b>Trancia −" + fran + "% — costo</b>", nf(sing, 0) + " €" + dim("premio BS " + nf(fp, 2) + "% · " + nf(sing / tot * 100, 1) + "% della rendita")) +
-    card("<b>Pavimento con trancia −" + fran + "%</b>", nf(cap * pavPct / 100, 0) + " € max" + dim("perdita " + nf(pavPct, 1) + "% del blocco, copertura piena a ratio 1"), "neg");
 }
 
 function calcFx() {
