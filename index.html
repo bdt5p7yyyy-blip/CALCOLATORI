@@ -31,11 +31,13 @@
   @media (max-width: 479px) { nav button { flex: 1 1 24%; padding: 11px 2px; font-size: 12px; } }
   nav button {
     flex: 1; padding: 12px 4px; border: none; background: none;
-    font-size: 13px; font-weight: 600; cursor: pointer;
-    color: var(--c, #94a3b8); opacity: .55; transition: opacity .15s;
+    font-size: 13px; font-weight: 700; cursor: pointer;
+    text-transform: uppercase; letter-spacing: .5px;
+    color: var(--c, #94a3b8); opacity: .9; transition: opacity .15s;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   }
   a { color: #fbbf24; text-decoration: underline; }
-  nav button.active { color: var(--c, #f8fafc); opacity: 1; border-bottom: 3px solid var(--c, #f8fafc); }
+  nav button.active { color: var(--c, #f8fafc); opacity: 1; border-bottom: 3px solid var(--c, #f8fafc); background: rgba(255, 255, 255, 0.07); border-radius: 8px 8px 0 0; }
   nav button:nth-child(1) { --c: #f472b6; }  /* Istruzioni — rosa */
   nav button:nth-child(2) { --c: #60a5fa; }  /* Payoff — azzurro */
   nav button:nth-child(3) { --c: #fbbf24; }  /* Strategia — ambra */
@@ -70,11 +72,18 @@
   .fblock { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px 12px; }
   .fblock .t { display: block; font-weight: 700; font-size: 14px; color: #fb923c; margin-bottom: 4px; }
   .fblock .r { font-size: 13px; color: #cbd5e1; line-height: 1.6; }
+  .card.cardHero { background: rgba(74, 222, 128, 0.22); border-color: #4ade80; }
+  .card.cardHero .v { font-size: 20px; font-weight: 800; }
   #scenTable table.scen td, #scenTable table.scen th { font-size: 15px; padding: 10px 8px; }
   .note {
     margin-top: 12px; font-size: 11px; color: #94a3b8; line-height: 1.5;
     background: #0f172a; border-left: 3px solid #334155; padding: 8px 10px; border-radius: 0 8px 8px 0;
   }
+  #istruzioni .note {
+    font-size: 15px; color: #e2e8f0; line-height: 1.8; padding: 14px 16px; font-weight: 500;
+  }
+  #istruzioni .note a { font-size: 15px; }
+  #istruzioni .note b { color: #f8fafc; }
   .btn {
     margin-top: 12px; width: 100%; padding: 13px; font-size: 15px; font-weight: 700;
     background: #2563eb; color: #fff; border: none; border-radius: 12px; cursor: pointer;
@@ -289,7 +298,7 @@
 
 <!-- ================= RIACQUISTO NEL BUCO ================= -->
 <section id="buco">
-  <h2>Riacquisto nel buco — quote per ripristinare il capitale (1/(1−n))</h2>
+  <h2>Riacquisto — quote per ripristinare il capitale (1/(1−n))</h2>
   <div class="grid">
     <div><label for="bP1">Prezzo attuale del titolo</label><input id="bP1" type="number" inputmode="decimal" placeholder="es. 128" /></div>
     <div><label for="bLoss">Perdita del titolo (%)</label><input id="bLoss" type="number" inputmode="decimal" placeholder="es. 20" /></div>
@@ -298,9 +307,12 @@
   <button class="btn" onclick="calcBuco()">Calcola riacquisto</button>
   <div class="results" id="bOut"></div>
   <div class="note">
-    Il buco si copre a prezzo attuale: <b>quote = capitale × perdita% ÷ prezzo attuale</b>. Il moltiplicatore 1/(1−n): ogni euro versato nel buco, se il prezzo torna alla partenza, vale 1/(1−n) —
-    a −20% diventa 1,25× · a −30% diventa 1,43× · a −45% diventa 1,82×. Senza cash, il recupero richiesto è n/(1−n): −20% → +25% · −30% → +42,9% · −45% → +81,8%.
-    Versare nel buco sostituisce il rimbalzo mancante — ma se la caduta continua, il buco si allarga: regola scritta prima del crollo, non durante.
+    La perdita si copre a prezzo attuale: <b>quote = capitale × perdita% ÷ prezzo attuale</b>, <b>arrotondate per eccesso a quote intere</b> — si copre sempre un filo più, mai meno —
+    e il <b>costo dell'operazione oggi = quote intere × prezzo attuale</b>, cioè i soldi che esci di tasca ora per ripristinare il valore del blocco.
+    Il moltiplicatore 1/(1−n): ogni euro versato a prezzo ribassato, se il prezzo torna alla partenza, vale 1/(1−n) —
+    a −20% diventa 1,25× · a −30% diventa 1,43× · a −45% diventa 1,82×. Il "valore alla pari" è il valore futuro delle quote riacquistate: 2.000 € spesi oggi a −20% valgono 2.500 € al ritorno (extra +500).
+    Senza cash, il recupero richiesto è n/(1−n): −20% → +25% · −30% → +42,9% · −45% → +81,8%.
+    Versare sulla perdita sostituisce il rimbalzo mancante — ma se la caduta continua, la perdita si allarga: regola scritta prima del crollo, non durante.
   </div>
 </section>
 
@@ -784,24 +796,26 @@ function calcHedge() {
   el.innerHTML = html;
 }
 
-/* ---------- 3c. Riacquisto nel buco (1/(1-n)) ---------- */
+/* ---------- 3c. Riacquisto / perdita (1/(1-n)) ---------- */
 function calcBuco() {
   const P1 = num("bP1"), n = num("bLoss"), C0 = num("bCap");
   if (isNaN(P1) || P1 <= 0 || isNaN(n) || n <= 0 || n >= 100 || isNaN(C0) || C0 <= 0)
     return void ($("bOut").innerHTML = err("Compila prezzo attuale, perdita (0–100%) e capitale originario."));
   const f = n / 100;
-  const P0 = P1 / (1 - f);                 // prezzo di partenza stimato
-  const buco = C0 * f;                      // valore da ripristinare
-  const quote = buco / P1;                  // quote da acquistare a prezzo attuale
+  const P0 = P1 / (1 - f);                 // prezzo di partenza (solo per il conto, non mostrato)
+  const perd = C0 * f;                      // perdita da ripristinare
+  const quoteE = perd / P1;                 // quote esatte
+  const quote = Math.ceil(quoteE);          // si comprano quote intere: per eccesso
+  const costo = quote * P1;                 // costo reale dell'operazione
   const valRec = quote * P0;                // valore delle quote al ritorno alla pari
-  const extra = valRec - buco;              // extra del moltiplicatore
+  const extra = valRec - costo;             // extra del moltiplicatore
   const fmt = v => (v >= 0 ? "+" : "") + nf(v) + " €";
   $("bOut").innerHTML =
-    card("Prezzo di partenza stimato", nf(P0, 4), "neutral") +
-    card("Valore attuale del blocco", nf(C0 * (1 - f)) + " €", "neg") +
-    card("<b>Buco da ripristinare</b>", nf(buco) + " €", "neg") +
-    card("<b>Quote da acquistare ora (a " + nf(P1, 4) + ")</b>", nf(quote, 4), "pos") +
-    card("Costo dell'acquisto", nf(buco) + " €", "neutral") +
+    card("Perdita subita dal blocco", nf(perd) + " €", "neg") +
+    '<div class="card cardHero"><span class="k"><b>QUOTE DA ACQUISTARE ORA (a ' + nf(P1, 4) + ')</b></span><span class="v">' + nf(quote, 0) +
+    ' <span style="font-weight:400;font-size:11px;opacity:.7">esatte: ' + nf(quoteE, 4) + '</span></span></div>' +
+    card("<b>💵 COSTO DELL'OPERAZIONE OGGI (di tasca tua)</b>",
+      "<b>" + nf(costo) + " €</b> <span style='font-weight:400;font-size:11px;opacity:.7'>= quote intere × prezzo attuale</span>", "pos") +
     card("Moltiplicatore 1/(1−n)", nf(1 / (1 - f), 3) + "×", "neutral") +
     card("Le quote al ritorno alla pari valgono", fmt(valRec), "pos") +
     card("Extra del 1/(1−n) sul riacquisto", fmt(extra), "pos") +
@@ -869,7 +883,7 @@ function calcFran() {
       ? 'Premio put annuo: <b>' + nf(premio) + ' €</b>'
       : 'Premio put (' + nf(mesi, 0) + ' mesi): <b>' + nf(premio) + ' €</b> · rinnovo annuo ≈ <b>' + nf(annuo) + ' €</b>';
     html += '<div class="fblock"><span class="t">Franchigia −' + fr + '%</span>' +
-      '<div class="r">💵 Da immobilizzare per coprire il buco con quote nuove: <b>' + nf(immob) + ' €</b>' + copTxt + '</div>' +
+      '<div class="r">💵 Da immobilizzare per coprire la perdita con quote nuove: <b>' + nf(immob) + ' €</b>' + copTxt + '</div>' +
       '<div class="r">🎟️ ' + premTxt + ' · Costo totale: <b>' + nf(totale) + ' €</b> (' + nf(totale / cap * 100, 1) + '% del blocco)</div>' +
       '<div class="r">🛡️ Floor netto: <b class="neg">−' + nf(floor, 1) + '%</b></div></div>';
   });
