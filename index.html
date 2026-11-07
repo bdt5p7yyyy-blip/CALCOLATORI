@@ -404,6 +404,8 @@
     <div><label for="oPrezzo">Prezzo pagato</label><input id="oPrezzo" type="number" inputmode="decimal" placeholder="es. 95" /></div>
     <div><label for="oPrezzoTipo">Prezzo in</label>
       <select id="oPrezzoTipo"><option value="pct">% del nominale</option><option value="eur">€</option></select></div>
+    <div><label for="oConv">Quotazione</label>
+      <select id="oConv"><option value="tq">tel quel — rateo incorporato</option><option value="clean">pulita — senza rateo</option></select></div>
     <div><label for="oYld">Rendimento desiderato (%)</label><input id="oYld" type="number" inputmode="decimal" placeholder="es. 4.5" /></div>
     <div><label for="oScad">Data di scadenza</label><input id="oScad" type="date" /></div>
     <div><label for="oExit">Valore finale incassato (% nominale)</label><input id="oExit" type="number" inputmode="decimal" placeholder="es. 100" /></div>
@@ -1152,10 +1154,18 @@ function calcBond() {
     const capInv = $("oPrezzoTipo").value === "pct" ? nom * pz / 100 : pz;
     const exitV = num("oExit");
     const uscita = nom * (isNaN(exitV) || exitV <= 0 ? 100 : exitV) / 100;
-    const cedoleTot = cedEur * anni;
+    const nCed = Math.ceil(anni);                       // cedole intere ancora da incassare
+    const tq = $("oConv").value !== "clean";            // tel quel: rateo gia' nel prezzo -> cedole intere
+    const cedoleTot = cedEur * (tq ? nCed : anni);
     const ytmLin = (cedoleTot + uscita - capInv) / capInv / anni * 100;
+    const cedEq = cedEur / capInv * 100;                      // la rendita: cedola annua sul capitale investito
+    const costPremio = (uscita - capInv) / capInv / anni * 100;  // il costo del premio annualizzato (negativo se sopra par)
     $("oOut").innerHTML =
-      card("<b>YTM</b>", "<b>" + nf(ytmLin) + " % p.a.</b> <span style='font-weight:400;font-size:11px;opacity:.7'>lineare, cedole non reinvestite, " + nf(anni, 2) + " anni</span>", "pos");
+      card("<b>YTM</b>", "<b>" + nf(ytmLin) + " % p.a.</b> <span style='font-weight:400;font-size:11px;opacity:.7'>lineare, " +
+        (tq ? "tel quel, " + (nCed === 1 ? "1 cedola intera" : nCed + " cedole intere") : "quotazione pulita, cedole pro-rata") + ", " + nf(anni, 2) + " anni</span>", ytmLin >= 0 ? "pos" : "neg") +
+      card("<b>CEDOLA EQUIVALENTE sul capitale investito</b>", "<b>" + nf(cedEq) + " %</b> <span style='font-weight:400;font-size:11px;opacity:.7'>= cedola annua ÷ prezzo pagato — la rendita pura</span>", "pos") +
+      card("Cedole che incasserai", nf(cedoleTot) + " € <span style='font-weight:400;font-size:11px;opacity:.7'>" + (tq ? (nCed === 1 ? "1 cedola intera" : nCed + " cedole intere") : "pro-rata") + "</span>", "neutral") +
+      card("Costo del premio (conto capitale)", nf(costPremio) + " % p.a." + (costPremio < 0 ? " — il prezzo che paghi per stare sopra par" : " — il premio ti torna in conto capitale"), costPremio < 0 ? "neg" : "pos");
     return;
   }
   if ($("oMode").value === "prez") {
