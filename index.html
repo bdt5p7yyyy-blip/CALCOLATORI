@@ -75,6 +75,11 @@
   .fblock { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px 12px; }
   .fblock .t { display: block; font-weight: 700; font-size: 14px; color: #fb923c; margin-bottom: 4px; }
   .fblock .r { font-size: 13px; color: #cbd5e1; line-height: 1.6; }
+  #oMode { font-weight: 700; }
+  #oMode option { font-weight: 700; text-transform: uppercase; }
+  #oMode option.oced { color: #60a5fa; }
+  #oMode option.oprez { color: #fbbf24; }
+  #oMode option.oytm { color: #4ade80; }
   .card.cardHero { background: rgba(74, 222, 128, 0.22); border-color: #4ade80; }
   .card.cardHero .v { font-size: 20px; font-weight: 800; }
   #scenTable table.scen td, #scenTable table.scen th { font-size: 15px; padding: 10px 8px; }
@@ -388,10 +393,10 @@
 
 <!-- ================= OBBLIGAZIONI ================= -->
 <section id="bond">
-  <h2>Obbligazioni — Rendimento e Prezzo Max</h2>
+  <h2>Obbligazioni — Cedola, Prezzo e YTM</h2>
   <div class="grid">
     <div><label for="oMode">Modalità</label>
-      <select id="oMode"><option value="rend">Prezzo → Rendimento</option><option value="prez">Rendimento → Prezzo max</option><option value="oriz">Orizzonte → Prezzo max</option></select></div>
+      <select id="oMode" onchange="oModeCol()"><option value="rend" class="oced">CEDOLA</option><option value="prez" class="oprez">PREZZO</option><option value="ytm" class="oytm">YTM</option></select></div>
     <div><label for="oNom">Nominale (€)</label><input id="oNom" type="number" inputmode="decimal" placeholder="es. 1000" /></div>
     <div><label for="oCed">Cedola annua</label><input id="oCed" type="number" inputmode="decimal" placeholder="es. 4" /></div>
     <div><label for="oCedTipo">Cedola espressa in</label>
@@ -400,12 +405,11 @@
     <div><label for="oPrezzoTipo">Prezzo in</label>
       <select id="oPrezzoTipo"><option value="pct">% del nominale</option><option value="eur">€</option></select></div>
     <div><label for="oYld">Rendimento desiderato (%)</label><input id="oYld" type="number" inputmode="decimal" placeholder="es. 4.5" /></div>
-    <div><label for="oAnni">Anni di orizzonte</label><input id="oAnni" type="number" inputmode="decimal" placeholder="es. 5" /></div>
+    <div><label for="oScad">Data di scadenza</label><input id="oScad" type="date" /></div>
     <div><label for="oExit">Valore finale incassato (% nominale)</label><input id="oExit" type="number" inputmode="decimal" placeholder="es. 100" /></div>
   </div>
   <button class="btn" onclick="calcBond()">Calcola</button>
   <div class="results" id="oOut"></div>
-  <div class="note">Modalità "Rendimento → Prezzo max": compila nominale, cedola e rendimento desiderato (il campo prezzo si ignora) e ottieni il prezzo massimo a cui pagare il bond per garantire quel rendimento immediato. Modalità "Orizzonte → Prezzo max": per bond con scadenze lunghe (es. 30 anni) metti il TUO orizzonte reale (es. 5 anni) e il valore che stimi di incassare alla fine (100 se rimborso al nominale, o il prezzo di vendita ipotizzato): ottieni il prezzo max a cui comprare oggi per ottenere il rendimento desiderato sul tuo orizzonte (interesse semplice, cedole non reinvestite). Rendimento immediato = cedola annua ÷ capitale investito.</div>
 </section>
 <!-- ================= CONFRONTO CW ================= -->
 <section id="conf">
@@ -1126,28 +1130,32 @@ function drawFxChart(cedoneVal, nom, costoEur, S0, f, mesi, svalImp, plImp) {
 }
 
 /* ---------- 5. Obbligazioni ---------- */
+function oModeCol() {
+  const c = { rend: "#60a5fa", prez: "#fbbf24", ytm: "#4ade80" };
+  $("oMode").style.color = c[$("oMode").value] || "#f8fafc";
+}
 function calcBond() {
   const nom = num("oNom"), ced = num("oCed");
   if (isNaN(nom) || nom <= 0 || isNaN(ced))
     return void ($("oOut").innerHTML = err("Compila nominale (> 0) e cedola."));
   const cedEur = $("oCedTipo").value === "pct" ? nom * ced / 100 : ced;
-  if ($("oMode").value === "oriz") {
-    const yld = num("oYld"), anni = num("oAnni"), exit = num("oExit");
-    if (isNaN(yld) || yld <= 0 || isNaN(anni) || anni <= 0 || isNaN(exit) || exit <= 0)
-      return void ($("oOut").innerHTML = err("In modalita' orizzonte compila rendimento, anni e valore finale (tutti > 0)."));
-    const uscita = nom * exit / 100;
+  if ($("oMode").value === "ytm") {
+    const pz = num("oPrezzo");
+    if (isNaN(pz) || pz <= 0)
+      return void ($("oOut").innerHTML = err("In modalita' YTM compila il prezzo pagato (> 0)."));
+    const scad = $("oScad").value;
+    if (!scad)
+      return void ($("oOut").innerHTML = err("In modalita' YTM compila la data di scadenza."));
+    const anni = (new Date(scad) - new Date()) / (1000 * 60 * 60 * 24 * 365);
+    if (anni <= 0)
+      return void ($("oOut").innerHTML = err("La data di scadenza e' nel passato."));
+    const capInv = $("oPrezzoTipo").value === "pct" ? nom * pz / 100 : pz;
+    const exitV = num("oExit");
+    const uscita = nom * (isNaN(exitV) || exitV <= 0 ? 100 : exitV) / 100;
     const cedoleTot = cedEur * anni;
-    const capMax = (uscita + cedoleTot) / (1 + yld / 100 * anni);
-    const pzMaxPct = capMax / nom * 100;
-    const gainFin = uscita + cedoleTot - capMax;
-    const twrTot = gainFin / capMax * 100;
+    const ytmLin = (cedoleTot + uscita - capInv) / capInv / anni * 100;
     $("oOut").innerHTML =
-      card("<b>Prezzo max di riferimento</b>", nf(pzMaxPct) + " % del nominale", "neutral") +
-      card("Equivale a (per il nominale inserito)", nf(capMax) + " €") +
-      card("Cedole totali sull'orizzonte", nf(anni) + " anni × " + nf(cedEur) + " € = " + nf(cedoleTot) + " €") +
-      card("Valore finale incassato", nf(uscita) + " € (" + nf(exit) + " %)") +
-      card("Gain totale sull'orizzonte", (gainFin >= 0 ? "+" : "") + nf(gainFin) + " €", gainFin >= 0 ? "pos" : "neg") +
-      card("TWR totale / annualizzato", nf(twrTot) + " % / " + nf(twrTot / anni) + " % p.a.", "pos");
+      card("<b>YTM</b>", "<b>" + nf(ytmLin) + " % p.a.</b> <span style='font-weight:400;font-size:11px;opacity:.7'>lineare, cedole non reinvestite, " + nf(anni, 2) + " anni</span>", "pos");
     return;
   }
   if ($("oMode").value === "prez") {
@@ -1156,30 +1164,21 @@ function calcBond() {
       return void ($("oOut").innerHTML = err("Inserisci il rendimento desiderato (> 0)."));
     const capMax = cedEur / (yld / 100);
     const pzMaxPct = capMax / nom * 100;
-    const diff = nom - capMax;
     $("oOut").innerHTML =
-      card("<b>Prezzo max di riferimento</b>", nf(pzMaxPct) + " % del nominale", "neutral") +
-      card("Equivale a (per il nominale inserito)", nf(capMax) + " €") +
-      card("Cedola incassata all'anno", nf(cedEur) + " €") +
-      card("Gain/loss a rimborso al nominale", (diff >= 0 ? "+" : "") + nf(diff) + " €", diff >= 0 ? "pos" : "neg") +
-      card("Rendi a questo prezzo", nf(yld) + " % esatti", "pos");
+      card("<b>Prezzo</b>", "<b>" + nf(pzMaxPct) + " % del nominale</b> <span style='font-weight:400;font-size:11px;opacity:.7'>= prezzo max per cedola immediata al " + nf(yld) + " %</span>", "pos");
     return;
   }
   const pz = num("oPrezzo");
   if (isNaN(pz) || pz <= 0)
-    return void ($("oOut").innerHTML = err("In modalita' rendimento compila il prezzo (> 0)."));
+    return void ($("oOut").innerHTML = err("In modalita' cedola compila il prezzo (> 0)."));
   const capInv = $("oPrezzoTipo").value === "pct" ? nom * pz / 100 : pz;
   const rend = cedEur / capInv * 100;
-  const diff = nom - capInv;
   $("oOut").innerHTML =
-    card("<b>Rendimento immediato</b>", nf(rend) + " %", "neutral") +
+    card("<b>Cedola</b>", "<b>" + nf(rend) + " %</b> <span style='font-weight:400;font-size:11px;opacity:.7'>resa immediata = cedola annua ÷ prezzo</span>", "neutral") +
     card("Cedola incassata all'anno", nf(cedEur) + " €") +
-    card("Capitale investito (prezzo)", nf(capInv) + " €") +
-    card("Gain/loss a rimborso al nominale", (diff >= 0 ? "+" : "") + nf(diff) + " €", diff >= 0 ? "pos" : "neg") +
-    card("Cedola nominale (%)", nf(cedEur / nom * 100) + " %");
+    card("Capitale investito (prezzo)", nf(capInv) + " €");
 }
-
-/* ---------- Confronto CW multi-emittente ---------- */
+oModeCol();
 function calcConf() {
   const tipo = $("cTipo").value, S = num("cS"), cap = num("cCap");
   if (isNaN(S) || S <= 0) return void ($("cOut").innerHTML = err("Inserisci il prezzo attuale del sottostante S."));
@@ -1372,6 +1371,7 @@ function calcCal() {
   });
   $("calOut").innerHTML = html;
 }
+oModeCol();
 </script>
 </body>
 </html>
