@@ -46,6 +46,9 @@
   nav button:nth-child(6) { --c: #fb923c; }  /* Franchigie — arancio */
   nav button:nth-child(7) { --c: #22d3ee; }  /* Bond FX — ciano */
   nav button:nth-child(8) { --c: #e2e8f0; }  /* Obbligazioni — perla */
+  nav button:nth-child(9) { --c: #facc15; }  /* Confronto — giallo */
+  nav button:nth-child(10) { --c: #a3e635; }  /* Ladder — lime */
+  nav button:nth-child(11) { --c: #e879f9; }  /* Calendario — fucsia */
   main { max-width: 680px; margin: 0 auto; padding: 14px; }
   section { display: none; }
   section.active { display: block; }
@@ -182,6 +185,9 @@
   <button data-tab="fran">Franchigie</button>
   <button data-tab="fx">Bond FX</button>
   <button data-tab="bond">Obbligazioni</button>
+  <button data-tab="conf">Confronto</button>
+  <button data-tab="lad">Ladder</button>
+  <button data-tab="cal">Calendario</button>
 </nav>
 <main>
 
@@ -400,6 +406,127 @@
   <button class="btn" onclick="calcBond()">Calcola</button>
   <div class="results" id="oOut"></div>
   <div class="note">Modalità "Rendimento → Prezzo max": compila nominale, cedola e rendimento desiderato (il campo prezzo si ignora) e ottieni il prezzo massimo a cui pagare il bond per garantire quel rendimento immediato. Modalità "Orizzonte → Prezzo max": per bond con scadenze lunghe (es. 30 anni) metti il TUO orizzonte reale (es. 5 anni) e il valore che stimi di incassare alla fine (100 se rimborso al nominale, o il prezzo di vendita ipotizzato): ottieni il prezzo max a cui comprare oggi per ottenere il rendimento desiderato sul tuo orizzonte (interesse semplice, cedole non reinvestite). Rendimento immediato = cedola annua ÷ capitale investito.</div>
+</section>
+<!-- ================= CONFRONTO CW ================= -->
+<section id="conf">
+  <h2>Confronto CW — a parità di strike/scadenza vince il premio più basso</h2>
+  <div class="grid">
+    <div><label for="cTipo">Tipo</label>
+      <select id="cTipo"><option value="put">Put</option><option value="call">Call</option></select></div>
+    <div><label for="cS">Prezzo attuale del sottostante S</label><input id="cS" type="number" inputmode="decimal" placeholder="es. 100" /></div>
+    <div class="full"><label for="cCap">Capitale da coprire (€) — opzionale, per N. strumenti e costo totale</label><input id="cCap" type="number" inputmode="decimal" placeholder="es. 10000" /></div>
+  </div>
+
+  <fieldset class="leg" id="c1Box" style="margin-top:10px">
+    <legend>CW 1</legend>
+    <div class="grid">
+      <div><label for="c1Nome">Emittente / nome</label><input id="c1Nome" type="text" placeholder="es. UniCredit" /></div>
+      <div><label for="c1K">Strike K</label><input id="c1K" type="number" inputmode="decimal" placeholder="es. 85" /></div>
+      <div><label for="c1Prem">Premio per strum.</label><input id="c1Prem" type="number" inputmode="decimal" placeholder="es. 0.05" /></div>
+      <div><label for="c1P">Parità P</label><input id="c1P" type="number" inputmode="decimal" placeholder="es. 0.01" /></div>
+      <div><label for="c1GG">Giorni a scadenza</label><input id="c1GG" type="number" inputmode="numeric" placeholder="es. 365" /></div>
+      <div><label for="c1Fx">Liquidazione</label>
+        <select id="c1Fx"><option value="no">Standard max</option><option value="si">÷S (FX)</option></select></div>
+    </div>
+  </fieldset>
+
+  <fieldset class="leg off" id="c2Box" style="margin-top:10px">
+    <legend>CW 2</legend>
+    <div class="grid">
+      <div><label for="c2Nome">Emittente / nome</label><input id="c2Nome" type="text" placeholder="es. BNP" /></div>
+      <div><label for="c2K">Strike K</label><input id="c2K" type="number" inputmode="decimal" placeholder="es. 85" /></div>
+      <div><label for="c2Prem">Premio per strum.</label><input id="c2Prem" type="number" inputmode="decimal" placeholder="es. 0.06" /></div>
+      <div><label for="c2P">Parità P</label><input id="c2P" type="number" inputmode="decimal" placeholder="es. 0.01" /></div>
+      <div><label for="c2GG">Giorni a scadenza</label><input id="c2GG" type="number" inputmode="numeric" placeholder="es. 365" /></div>
+      <div><label for="c2Fx">Liquidazione</label>
+        <select id="c2Fx"><option value="no">Standard max</option><option value="si">÷S (FX)</option></select></div>
+    </div>
+  </fieldset>
+
+  <fieldset class="leg off" id="c3Box" style="margin-top:10px">
+    <legend>CW 3</legend>
+    <div class="grid">
+      <div><label for="c3Nome">Emittente / nome</label><input id="c3Nome" type="text" placeholder="es. Goldman" /></div>
+      <div><label for="c3K">Strike K</label><input id="c3K" type="number" inputmode="decimal" placeholder="es. 85" /></div>
+      <div><label for="c3Prem">Premio per strum.</label><input id="c3Prem" type="number" inputmode="decimal" placeholder="es. 0.055" /></div>
+      <div><label for="c3P">Parità P</label><input id="c3P" type="number" inputmode="decimal" placeholder="es. 0.01" /></div>
+      <div><label for="c3GG">Giorni a scadenza</label><input id="c3GG" type="number" inputmode="numeric" placeholder="es. 365" /></div>
+      <div><label for="c3Fx">Liquidazione</label>
+        <select id="c3Fx"><option value="no">Standard max</option><option value="si">÷S (FX)</option></select></div>
+    </div>
+  </fieldset>
+
+  <fieldset class="leg off" id="c4Box" style="margin-top:10px">
+    <legend>CW 4</legend>
+    <div class="grid">
+      <div><label for="c4Nome">Emittente / nome</label><input id="c4Nome" type="text" placeholder="es. Vontobel" /></div>
+      <div><label for="c4K">Strike K</label><input id="c4K" type="number" inputmode="decimal" placeholder="es. 85" /></div>
+      <div><label for="c4Prem">Premio per strum.</label><input id="c4Prem" type="number" inputmode="decimal" placeholder="es. 0.048" /></div>
+      <div><label for="c4P">Parità P</label><input id="c4P" type="number" inputmode="decimal" placeholder="es. 0.01" /></div>
+      <div><label for="c4GG">Giorni a scadenza</label><input id="c4GG" type="number" inputmode="numeric" placeholder="es. 365" /></div>
+      <div><label for="c4Fx">Liquidazione</label>
+        <select id="c4Fx"><option value="no">Standard max</option><option value="si">÷S (FX)</option></select></div>
+    </div>
+  </fieldset>
+
+  <button class="btn" onclick="calcConf()">Calcola confronto</button>
+  <div class="results" id="cOut"></div>
+  <div class="note">
+    Il costo viene normalizzato: <b>costo % nozionale = premio × P ÷ S</b> (P = CW per 1 azione; per CW su valute P = 1/parità del KID),
+    poi <b>annualizzato</b> con i giorni a scadenza — così si confrontano anche scadenze diverse.
+    Sanity check automatico: il premio quotato non può stare sotto l'intrinseco (intrinseco per strumento = max(S−K,0)÷P, o ÷S÷P per liquidazione FX):
+    se succede, la parità è probabilmente girata al contrario. Il confronto della regola vale <b>a parità di strike e scadenza</b>:
+    se gli strike o i giorni differiscono tra le righe, il calcolatore ti avvisa e il verdetto va preso con le pinze (strike diversi = prodotti diversi).
+    Con il capitale da coprire: N. strumenti = capitale ÷ (S÷P), arrotondato per eccesso, e costo totale in €.
+    Nota: con liquidazione ÷S il break-even mostrato è quello della formula standard (approssimato) — il BE esatto ÷S lo calcola la tab Payoff.
+  </div>
+</section>
+<!-- ================= LADDER DOCTOR ================= -->
+<section id="lad">
+  <h2>Ladder Doctor — cricchetto e strike stantii</h2>
+  <div class="grid">
+    <div><label for="ldR">Livello indice all'ultimo rinnovo (strike-setting)</label><input id="ldR" type="number" inputmode="decimal" placeholder="es. 17231" /></div>
+    <div><label for="ldS">Indice attuale</label><input id="ldS" type="number" inputmode="decimal" placeholder="es. 18500" /></div>
+    <div><label for="ldM">Massimo dall'ultimo rinnovo (opzionale)</label><input id="ldM" type="number" inputmode="decimal" placeholder="es. 19000" /></div>
+    <div><label for="ldTrig">Trigger cricchetto (%)</label><input id="ldTrig" type="number" inputmode="decimal" value="8" /></div>
+  </div>
+  <div class="grid" style="margin-top:10px">
+    <div><label for="ldK1">Strike trancia A (put lunga)</label><input id="ldK1" type="number" inputmode="decimal" placeholder="es. 14646" /></div>
+    <div><label for="ldMesi1">Mesi a scadenza trancia A</label><input id="ldMesi1" type="number" inputmode="decimal" placeholder="es. 6" /></div>
+    <div><label for="ldK2">Strike trancia B (put profonda)</label><input id="ldK2" type="number" inputmode="decimal" placeholder="es. 12062" /></div>
+    <div><label for="ldMesi2">Mesi a scadenza trancia B</label><input id="ldMesi2" type="number" inputmode="decimal" placeholder="es. 12" /></div>
+  </div>
+  <button class="btn" onclick="calcLad()">Diagnostica ladder</button>
+  <div class="results" id="ldOut"></div>
+  <div class="note">
+    Il cricchetto: se l'indice sale più del trigger sopra il livello dell'ultimo rinnovo, la generazione successiva si compra <b>subito</b>, senza aspettare la data.
+    Storia: rinnovo a ott 2024, poi melt-up +10% → le tranci "−15%" erano al −22/−31% dal picco → al fondo del −25% del 2025 pagavano briciole.
+    L'assicurazione si compra prima dell'incendio: il rinnovo sul rialzo è l'unico modo per avere strike vicini quando arriva il crollo.
+    Staleness = quanto lo strike si è allontanato DAL MASSIMO rispetto al livello del rinnovo: la distanza dichiarata è quella dal rinnovo, quella che conta nel crash è dal massimo.
+    Se il massimo è lasciato vuoto si usa l'indice attuale (nessun melt-up in corso).
+  </div>
+</section>
+<!-- ================= CALENDARIO RINNOVI LADDER ================= -->
+<section id="cal">
+  <h2>Calendario Rinnovi — cosa rinnovo e quando</h2>
+  <div class="grid">
+    <div><label for="calS">Indice attuale</label><input id="calS" type="number" inputmode="decimal" placeholder="es. 18500" /></div>
+    <div><label for="calDate">Data di riferimento (vuoto = oggi)</label><input id="calDate" type="date" /></div>
+  </div>
+  <div class="grid" style="margin-top:10px">
+    <div><label for="calAq1">Trancia A — data acquisto</label><input id="calAq1" type="date" /></div>
+    <div><label for="calSc1">Trancia A — scadenza</label><input id="calSc1" type="date" /></div>
+    <div><label for="calAq2">Trancia B — data acquisto</label><input id="calAq2" type="date" /></div>
+    <div><label for="calSc2">Trancia B — scadenza</label><input id="calSc2" type="date" /></div>
+  </div>
+  <button class="btn" onclick="calcCal()">Calcola calendario</button>
+  <div class="results" id="calOut"></div>
+  <div class="note">
+    La ladder si rinnova una trancia per volta (mai tutto il coperchio insieme a IV di panico): questa tab dice <b>quale</b> trancia scade al prossimo giro e <b>con che strike fresco</b>.
+    "In scadenza" = meno di 3 mesi: quando una trancia entra in questa zona, il rinnovo si prepara (o si anticipa se il cricchetto della tab Ladder è scattato).
+    Strike freschi = −15% e −30% dall'indice attuale: il confronto col vecchio strike dice quanto si è spostato il mercato da quando l'hai comprata.
+    Se le due scadenze sono troppo vicine (meno di 3 mesi di sfasamento) le tranci non sono scaglionate: rischio di rinegoziare tutto insieme.
+  </div>
 </section>
 
 </main>
@@ -1050,6 +1177,200 @@ function calcBond() {
     card("Capitale investito (prezzo)", nf(capInv) + " €") +
     card("Gain/loss a rimborso al nominale", (diff >= 0 ? "+" : "") + nf(diff) + " €", diff >= 0 ? "pos" : "neg") +
     card("Cedola nominale (%)", nf(cedEur / nom * 100) + " %");
+}
+
+/* ---------- Confronto CW multi-emittente ---------- */
+function calcConf() {
+  const tipo = $("cTipo").value, S = num("cS"), cap = num("cCap");
+  if (isNaN(S) || S <= 0) return void ($("cOut").innerHTML = err("Inserisci il prezzo attuale del sottostante S."));
+  const rows = [];
+  for (let i = 1; i <= 4; i++) {
+    const K = num("c" + i + "K"), prem = num("c" + i + "Prem"), P = num("c" + i + "P"), GG = num("c" + i + "GG");
+    if (isNaN(K) && isNaN(prem)) continue;
+    const nome = $("c" + i + "Nome").value.trim() || ("CW " + i);
+    const fx = $("c" + i + "Fx").value === "si";
+    if (isNaN(K) || isNaN(prem) || isNaN(P) || P <= 0 || isNaN(GG) || GG <= 0) {
+      rows.push({ nome, incompleto: true });
+      continue;
+    }
+    let intrUnit = tipo === "call" ? Math.max(S - K, 0) : Math.max(K - S, 0);
+    if (fx) intrUnit = intrUnit / S;
+    const intrStrum = intrUnit / P;                 // intrinseco per strumento (sanity)
+    const premAz = prem * P;                        // premio per azione
+    const costPct = premAz / S * 100;                // % nozionale one-off
+    const costAnn = costPct / (GG / 365);           // % annua
+    const be = tipo === "call" ? K + premAz : K - premAz;
+    let sanity = "ok";
+    if (prem < intrStrum * 0.98) sanity = "warn";   // sotto intrinseco: parità girata?
+    else if (intrStrum > 0 && prem > intrStrum * 5) sanity = "tempo"; // quasi solo tempo
+    let nStr = NaN, costTot = NaN;
+    if (!isNaN(cap) && cap > 0) {
+      nStr = Math.ceil(cap * P / S);                // nozionale per strumento = S/P
+      costTot = nStr * prem;
+    }
+    rows.push({ nome, K, prem, P, GG, fx, intrStrum, premAz, costPct, costAnn, be, sanity, nStr, costTot, incompleto: false });
+  }
+  if (!rows.length) return void ($("cOut").innerHTML = err("Compila almeno un CW (strike, premio, parità, giorni)."));
+
+  const validi = rows.filter(r => !r.incompleto);
+  if (validi.length < 2) {
+    let out = rows.map(r => r.incompleto
+      ? err(r.nome + ": riga incompleta (servono K, premio, P e giorni).")
+      : card(r.nome + " — costo", nf(r.costPct) + " % del nozionale · " + nf(r.costAnn) + " %/anno")).join("");
+    return void ($("cOut").innerHTML = out + '<div class="note">Servono almeno due CW completi per il verdetto.</div>');
+  }
+
+  // coerenza strike/scadenza (regola: confronto a parità di K e scadenza)
+  const Ks = validi.map(r => r.K), GGs = validi.map(r => r.GG);
+  const kEq = Math.max(...Ks) - Math.min(...Ks) < 1e-9;
+  const ggEq = Math.max(...GGs) - Math.min(...GGs) < 1e-9;
+
+  validi.sort((a, b) => a.costAnn - b.costAnn);
+  const win = validi[0], lose = validi[validi.length - 1];
+  const risparmioAnn = lose.costAnn - win.costAnn;
+
+  let html = '<div class="card cardHero"><span class="k">🏆 VINCE IL PREMIO PIÙ BASSO</span><span class="v">' +
+    win.nome + " · " + nf(win.costAnn) + " %/anno</span></div>";
+  html += card("Costo del vincitore", nf(win.costPct) + " % nozionale · " + nf(win.costAnn) + " %/anno", "pos");
+  html += card("Costo del peggiore (" + lose.nome + ")", nf(lose.costPct) + " % nozionale · " + nf(lose.costAnn) + " %/anno", "neg");
+  if (!isNaN(cap) && cap > 0 && !isNaN(win.costTot)) {
+    const diffTot = lose.costTot - win.costTot;
+    html += card("Risparmio annuo stimato", nf(risparmioAnn / 100 * cap) + " €/anno su " + nf(cap, 0) + " €", "pos");
+    html += card("Costo totale vincitore", nf(win.nStr, 0) + " strum. × " + nf(win.prem) + " € = " + nf(win.costTot) + " €");
+  }
+  if (!kEq || !ggEq) {
+    html += '<div class="card"><span class="k" style="color:#fbbf24">⚠️ Strike e/o scadenze NON uguali tra le righe — sono prodotti diversi: il verdetto è indicativo, non la regola.</span></div>';
+  }
+
+  validi.forEach(r => {
+    let t = '<span class="t">' + r.nome + " · K " + nf(r.K, r.K >= 20 ? 2 : 4) + " · " + nf(r.GG, 0) + " gg" + (r.fx ? " · ÷S" : "") + "</span>";
+    t += '<span class="r">Costo: <b>' + nf(r.costPct) + " %</b> nozionale → <b>" + nf(r.costAnn) + " %/anno</b>";
+    t += " · Premio/azione: " + nf(r.premAz, 4);
+    t += " · BE: " + nf(r.be, r.be >= 20 ? 2 : 4);
+    if (!isNaN(cap) && cap > 0 && !isNaN(r.nStr)) t += " · N: " + nf(r.nStr, 0) + " strum. = " + nf(r.costTot) + " €";
+    t += "<br>Sanity (prem " + nf(r.prem, 4) + " vs intrinseco " + nf(r.intrStrum, 4) + "): ";
+    if (r.sanity === "warn") t += '<b style="color:#f87171">⚠️ premio sotto l\'intrinseco — parità girata o dato errato (KID!)</b>';
+    else if (r.sanity === "tempo") t += "quasi tutto valore tempo (deep OTM, normale)";
+    else t += '<b style="color:#4ade80">ok</b>';
+    t += "</span>";
+    html += '<div class="fblock" style="margin-top:8px">' + t + "</div>";
+  });
+  $("cOut").innerHTML = html;
+}
+
+/* ---------- Ladder Doctor ---------- */
+function calcLad() {
+  const R = num("ldR"), S = num("ldS"), trig = num("ldTrig");
+  if (isNaN(R) || R <= 0 || isNaN(S) || S <= 0) return void ($("ldOut").innerHTML = err("Inserisci livello dell'ultimo rinnovo e indice attuale."));
+  const trigPct = isNaN(trig) || trig <= 0 ? 8 : trig;
+  let M = num("ldM");
+  if (isNaN(M) || M < S) M = S;
+
+  const T = R * (1 + trigPct / 100);
+  const scattato = S >= T;
+  const rialzoManca = T / S - 1;
+  const spostamento = S / R - 1;
+
+  let html = scattato
+    ? '<div class="card cardHero"><span class="k">🔔 CRICCHETTO SCATTATO</span><span class="v">RINNOVA ORA</span></div>' +
+      card("Nuove tranci a livello attuale", "−15% → " + nf(S * 0.85, 0) + " · −30% → " + nf(S * 0.70, 0), "neutral")
+    : '<div class="card cardHero"><span class="k">✅ Cricchetto non scattato</span><span class="v">manca +' + nf(rialzoManca * 100, 1) + '%</span></div>';
+  html += card("Livello di trigger (+" + nf(trigPct, 1) + "% sul rinnovo)", nf(T, 0), "neutral");
+  html += card("Indice vs ultimo rinnovo", (spostamento >= 0 ? "+" : "") + nf(spostamento * 100, 1) + "%", spostamento > 0 ? "pos" : "neg");
+  html += card("Massimo di riferimento", nf(M, 0) + " (dall'ultimo rinnovo)");
+
+  let stantii = 0;
+  for (let i = 1; i <= 2; i++) {
+    const K = num("ldK" + i), mesi = num("ldMesi" + i);
+    if (isNaN(K) || K <= 0) continue;
+    const nome = i === 1 ? "Trancia A" : "Trancia B";
+    if (K > R) {
+      html += err(nome + ": strike sopra il livello di rinnovo — sicuro che il rinnovo sia quello giusto?");
+      continue;
+    }
+    const distR = (R - K) / R * 100;    // distanza dichiarata (dal rinnovo)
+    const distM = (M - K) / M * 100;   // distanza reale (dal massimo)
+    const stale = distM - distR;       // punti di staleness
+    if (stale > 5) stantii++;
+    let t = '<span class="t">' + nome + " · K " + nf(K, 0) + (isNaN(mesi) ? "" : " · " + nf(mesi, 0) + " mesi") + "</span>";
+    t += '<span class="r">Distanza dal rinnovo: <b>−' + nf(distR, 1) + "%</b> · distanza reale dal massimo: <b>−" + nf(distM, 1) + "%</b>";
+    t += " · protezione reale: l'indice deve scendere <b>−" + nf(distM, 1) + "%</b> dal massimo prima che questa trancia entri in zona";
+    if (stale > 5) t += '<br><b style="color:#fbbf24">⚠️ Stantia: +' + nf(stale, 1) + ' punti dal massimo — al fondo di un crash di "−' + nf(distM, 1) + '%" pagava briciole.</b>';
+    else t += "<br>Staleness: +" + nf(stale, 1) + " punti — ok";
+    t += "</span>";
+    html += '<div class="fblock" style="margin-top:8px">' + t + "</div>";
+  }
+  if (stantii > 0) {
+    html += '<div class="card"><span class="k" style="color:#fbbf24">⚠️ ' + stantii + (stantii === 1 ? " trancia stantia" : " tranci stantie") + ": gli strike sono lontani dal massimo — considera un rinnovo anticipato (o aspetta il cricchetto se l'indice sta salendo).</span></div>";
+  }
+  $("ldOut").innerHTML = html;
+}
+
+/* ---------- Calendario Rinnovi Ladder ---------- */
+function calcCal() {
+  const S = num("calS");
+  const dRif = $("calDate").value ? new Date($("calDate").value + "T00:00:00") : new Date();
+  const GG_MS = 86400000, MESE_MS = 30.44 * GG_MS;
+  const tr = [];
+  let hasData = false;
+  for (let i = 1; i <= 2; i++) {
+    const nome = i === 1 ? "Trancia A" : "Trancia B";
+    const aq = $("calAq" + i).value, sc = $("calSc" + i).value;
+    if (!sc) { tr.push({ nome, vuota: true }); continue; }
+    hasData = true;
+    const dSc = new Date(sc + "T00:00:00");
+    const dAq = aq ? new Date(aq + "T00:00:00") : null;
+    const giorni = Math.round((dSc - dRif) / GG_MS);
+    const mesi = giorni / 30.44;
+    tr.push({ nome, dSc, dAq, giorni, mesi, vuota: false });
+  }
+  if (!hasData) return void ($("calOut").innerHTML = err("Inserisci almeno una data di scadenza."));
+  if (!isNaN(S) && S <= 0) return void ($("calOut").innerHTML = err("Indice attuale non valido."));
+
+  // la trancia che scade prima è il prossimo rinnovo
+  const vive = tr.filter(t => !t.vuota && t.giorni >= 0);
+  if (!vive.length) {
+    return void ($("calOut").innerHTML = err("Entrambe le tranci sono scadute rispetto alla data di riferimento."));
+  }
+  vive.sort((a, b) => a.giorni - b.giorni);
+  const next = vive[0];
+
+  const ggTxt = g => g + " gg";
+  let html = '<div class="card cardHero"><span class="k">📋 PROSSIMO RINNOVO</span><span class="v">' +
+    next.nome + " · " + nf(next.mesi, 1) + " mesi</span></div>";
+  html += card("Data di scadenza", next.dSc.toLocaleDateString("it-IT"), "neutral");
+  if (next.mesi < 3) html += '<div class="card"><span class="k" style="color:#fbbf24">⚠️ ' + next.nome + " in zona rinnovo (meno di 3 mesi): prepara la generazione successiva — o anticipa se il cricchetto della tab Ladder è scattato.</span></div>";
+  if (!isNaN(S) && S > 0) {
+    html += card("Strike freschi a rinnovo (indice " + nf(S, 0) + ")", "−15% → " + nf(S * 0.85, 0) + " · −30% → " + nf(S * 0.70, 0), "neutral");
+  }
+  html += card("Al rinnovo compri", "put con scadenza +12 mesi (la nuova generazione, sfalsata)", "neutral");
+
+  // scaglionamento
+  if (vive.length === 2) {
+    const sfas = (vive[1].dSc - vive[0].dSc) / MESE_MS;
+    html += Math.abs(sfas) < 3
+      ? '<div class="card"><span class="k" style="color:#f87171">🚨 Scadenze troppo vicine (' + nf(Math.abs(sfas), 1) + ' mesi): tranci NON scaglionate — rischio di rinegoziare tutto insieme a IV di panico.</span></div>'
+      : card("Sfasamento tranci", nf(Math.abs(sfas), 1) + " mesi — scaglionate ok", "pos");
+  }
+
+  tr.forEach(t => {
+    if (t.vuota) { html += err(t.nome + ": manca la data di scadenza."); return; }
+    if (t.giorni < 0) {
+      html += err(t.nome + ": SCADUTA da " + (-t.giorni) + " giorni rispetto alla data di riferimento.");
+      return;
+    }
+    let r = '<span class="t">' + t.nome + " · scade " + t.dSc.toLocaleDateString("it-IT") + "</span>";
+    r += '<span class="r">Rimasto: <b>' + ggTxt(t.giorni) + "</b> ≈ <b>" + nf(t.mesi, 1) + " mesi</b>";
+    if (t.dAq) {
+      const mesiTen = (t.dSc - t.dAq) / MESE_MS;
+      r += " · vita totale " + nf(mesiTen, 1) + " mesi (acquisto " + t.dAq.toLocaleDateString("it-IT") + ")";
+    }
+    if (t === next && t.mesi < 3) r += '<br><b style="color:#fbbf24">⚠️ In zona rinnovo</b>';
+    else if (t === next) r += '<br>Questa è la prossima da rinnovare';
+    r += "</span>";
+    html += '<div class="fblock" style="margin-top:8px">' + r + "</div>";
+  });
+  $("calOut").innerHTML = html;
 }
 </script>
 </body>
