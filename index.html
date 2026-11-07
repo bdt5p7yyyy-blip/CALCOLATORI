@@ -30,9 +30,19 @@
   }
   nav button {
     flex: 1; padding: 12px 4px; border: none; background: none;
-    font-size: 13px; font-weight: 600; color: #94a3b8; cursor: pointer;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    color: var(--c, #94a3b8); opacity: .55; transition: opacity .15s;
   }
-  nav button.active { color: #f8fafc; border-bottom: 3px solid #f8fafc; }
+  a { color: #fbbf24; text-decoration: underline; }
+  nav button.active { color: var(--c, #f8fafc); opacity: 1; border-bottom: 3px solid var(--c, #f8fafc); }
+  nav button:nth-child(1) { --c: #f472b6; }  /* Istruzioni — rosa */
+  nav button:nth-child(2) { --c: #60a5fa; }  /* Payoff — azzurro */
+  nav button:nth-child(3) { --c: #fbbf24; }  /* Strategia — ambra */
+  nav button:nth-child(4) { --c: #4ade80; }  /* Hedge — verde */
+  nav button:nth-child(5) { --c: #a78bfa; }  /* Riacquisto — viola */
+  nav button:nth-child(6) { --c: #fb923c; }  /* Franchigie — arancio */
+  nav button:nth-child(7) { --c: #22d3ee; }  /* Bond FX — ciano */
+  nav button:nth-child(8) { --c: #e2e8f0; }  /* Obbligazioni — perla */
   main { max-width: 680px; margin: 0 auto; padding: 14px; }
   section { display: none; }
   section.active { display: block; }
@@ -142,16 +152,38 @@
   <p>Opzioni &amp; Covered Warrant · Strategie Put · Obbligazioni</p>
 </header>
 <nav>
-  <button data-tab="payoff" class="active">Payoff</button>
+  <button data-tab="istruzioni" class="active">Istruzioni</button>
+  <button data-tab="payoff">Payoff</button>
   <button data-tab="strat">Strategia</button>
   <button data-tab="hedge">Hedge</button>
+  <button data-tab="buco">Riacquisto</button>
+  <button data-tab="fran">Franchigie</button>
   <button data-tab="fx">Bond FX</button>
   <button data-tab="bond">Obbligazioni</button>
 </nav>
 <main>
 
+<!-- ================= ISTRUZIONI GITHUB ================= -->
+<section id="istruzioni" class="active">
+  <h2>🔑 Istruzioni GitHub — dare a Vibe il permesso di pubblicare</h2>
+  <div class="note" style="border-left-color:#f472b6">
+    <b>1.</b> Apri <a href="https://github.com/settings/personal-access-tokens" target="_blank">github.com/settings/personal-access-tokens</a><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;(GitHub → Settings → Developer settings → Fine-grained personal access tokens)<br>
+    <b>2.</b> <b>Generate new token</b> → nome es. "CALCOLATORI-pubblica" → durata breve (7–30 giorni)<br>
+    <b>3.</b> Repository access → <b>Only select repositories</b> → seleziona <b>CALCOLATORI</b><br>
+    <b>4.</b> Permissions → Repository permissions → <b>Contents → Read and write</b><br>
+    <b>5.</b> Generate token → copia la stringa <b>(si vede UNA volta sola)</b> e incollala nella chat con Vibe<br>
+    <b>6.</b> Vibe fa il commit, verifica il file byte per byte e pubblica su GitHub Pages<br>
+    <b>7.</b> Finito → <b>revoca il token</b> (Delete) dalla stessa pagina: il registro resta pulito
+  </div>
+  <div class="note">
+    Dopo ogni aggiornamento la PWA sull'iPhone mostra ancora la versione in cache:
+    riapri in <b>Safari</b> o reinstalla l'icona dalla home per vedere quella nuova.
+  </div>
+</section>
+
 <!-- ================= PAYOFF ================= -->
-<section id="payoff" class="active">
+<section id="payoff">
   <h2>Payoff Opzioni &amp; Covered Warrant (a scadenza)</h2>
   <div class="grid">
     <div><label for="pTipo">Tipo</label>
@@ -249,6 +281,42 @@
   </div>
 </section>
 
+<!-- ================= RIACQUISTO NEL BUCO ================= -->
+<section id="buco">
+  <h2>Riacquisto nel buco — quote per ripristinare il capitale (1/(1−n))</h2>
+  <div class="grid">
+    <div><label for="bP1">Prezzo attuale del titolo</label><input id="bP1" type="number" inputmode="decimal" placeholder="es. 128" /></div>
+    <div><label for="bLoss">Perdita del titolo (%)</label><input id="bLoss" type="number" inputmode="decimal" placeholder="es. 20" /></div>
+    <div><label for="bCap">Capitale originario del blocco (€)</label><input id="bCap" type="number" inputmode="decimal" placeholder="es. 10000" /></div>
+  </div>
+  <button class="btn" onclick="calcBuco()">Calcola riacquisto</button>
+  <div class="results" id="bOut"></div>
+  <div class="note">
+    Il buco si copre a prezzo attuale: <b>quote = capitale × perdita% ÷ prezzo attuale</b>. Il moltiplicatore 1/(1−n): ogni euro versato nel buco, se il prezzo torna alla partenza, vale 1/(1−n) —
+    a −20% diventa 1,25× · a −30% diventa 1,43× · a −45% diventa 1,82×. Senza cash, il recupero richiesto è n/(1−n): −20% → +25% · −30% → +42,9% · −45% → +81,8%.
+    Versare nel buco sostituisce il rimbalzo mancante — ma se la caduta continua, il buco si allarga: regola scritta prima del crollo, non durante.
+  </div>
+</section>
+
+<!-- ================= FRANCHIGIE ================= -->
+<section id="fran">
+  <h2>Franchigie −15% / −20% / −30% — costo totale del piano</h2>
+  <div class="grid">
+    <div><label for="fCap">Blocco da coprire (€)</label><input id="fCap" type="number" inputmode="decimal" placeholder="es. 10000" /></div>
+    <div><label for="fP15">Premio annuo put −15% (%)</label><input id="fP15" type="number" inputmode="decimal" value="1.62" /></div>
+    <div><label for="fP20">Premio annuo put −20% (%)</label><input id="fP20" type="number" inputmode="decimal" value="0.86" /></div>
+    <div><label for="fP30">Premio annuo put −30% (%)</label><input id="fP30" type="number" inputmode="decimal" value="0.17" /></div>
+    <div><label for="fRes">Riserva extra sul buco (%)</label><input id="fRes" type="number" inputmode="decimal" value="0" /></div>
+  </div>
+  <button class="btn" onclick="calcFran()">Calcola franchigie</button>
+  <div class="results" id="fOut"></div>
+  <div class="note">
+    Riserva ferma = franchigia × blocco (+extra%): capitale <b>immobilizzato ma non perso</b> — frutta interesse, serve da versare nel buco, torna al rimbalzo.
+    Il costo vero annuo è solo il premio. Costo totale = premio + riserva ferma: è l'ingombro del piano tavernale (deducibile in proprio + coda delegata alla put).
+    Floor netto = franchigia + premio. Premi default: put 12 mesi su indice tipo Nasdaq-100 (IV ~20%, rif. Black-Scholes) — sui singoli ad alta IV i premi sono
+    5-10 volte questi: aggiornali sempre dal listino reale prima di decidere.
+  </div>
+</section>
 
 <section id="fx">
   <h2>Bond in valuta — Yield effettivo in € (USD · MXN · TRY · GBP)</h2>
@@ -749,6 +817,56 @@ function calcHedge() {
   let el = $("hTable");
   if (!el) { el = document.createElement("div"); el.id = "hTable"; $("hOut").after(el); }
   el.innerHTML = html;
+}
+
+/* ---------- 3c. Riacquisto nel buco (1/(1-n)) ---------- */
+function calcBuco() {
+  const P1 = num("bP1"), n = num("bLoss"), C0 = num("bCap");
+  if (isNaN(P1) || P1 <= 0 || isNaN(n) || n <= 0 || n >= 100 || isNaN(C0) || C0 <= 0)
+    return void ($("bOut").innerHTML = err("Compila prezzo attuale, perdita (0–100%) e capitale originario."));
+  const f = n / 100;
+  const P0 = P1 / (1 - f);                 // prezzo di partenza stimato
+  const buco = C0 * f;                      // valore da ripristinare
+  const quote = buco / P1;                  // quote da acquistare a prezzo attuale
+  const valRec = quote * P0;                // valore delle quote al ritorno alla pari
+  const extra = valRec - buco;              // extra del moltiplicatore
+  const fmt = v => (v >= 0 ? "+" : "") + nf(v) + " €";
+  $("bOut").innerHTML =
+    card("Prezzo di partenza stimato", nf(P0, 4), "neutral") +
+    card("Valore attuale del blocco", nf(C0 * (1 - f)) + " €", "neg") +
+    card("<b>Buco da ripristinare</b>", nf(buco) + " €", "neg") +
+    card("<b>Quote da acquistare ora (a " + nf(P1, 4) + ")</b>", nf(quote, 4), "pos") +
+    card("Costo dell'acquisto", nf(buco) + " €", "neutral") +
+    card("Moltiplicatore 1/(1−n)", nf(1 / (1 - f), 3) + "×", "neutral") +
+    card("Le quote al ritorno alla pari valgono", fmt(valRec), "pos") +
+    card("Extra del 1/(1−n) sul riacquisto", fmt(extra), "pos") +
+    card("Recupero richiesto senza cash", nf(f / (1 - f) * 100) + " %", "neutral");
+}
+
+/* ---------- 3d. Franchigie: costo totale del piano ---------- */
+function calcFran() {
+  const cap = num("fCap");
+  const p15 = num("fP15"), p20 = num("fP20"), p30 = num("fP30");
+  let extra = num("fRes"); if (isNaN(extra)) extra = 0;
+  if (isNaN(cap) || cap <= 0 || isNaN(p15) || p15 < 0 || isNaN(p20) || p20 < 0 || isNaN(p30) || p30 < 0 || extra < 0)
+    return void ($("fOut").innerHTML = err("Compila il blocco (> 0) e i premi (≥ 0)."));
+  const rows = [[15, p15], [20, p20], [30, p30]];
+  let html = '<table class="scen"><tr><th>Franchigia</th><th>Premio put (annuo)</th><th>Riserva ferma</th><th>Costo totale</th><th>Floor netto</th><th>Incidenza su blocco</th></tr>';
+  rows.forEach(function(r) {
+    const fr = r[0], p = r[1];
+    const premio = cap * p / 100;
+    const riserva = cap * fr / 100 * (1 + extra / 100);
+    const totale = premio + riserva;
+    const floor = fr + p;
+    html += '<tr><td>−' + fr + '%</td>' +
+      '<td class="neg">' + nf(premio) + ' €</td>' +
+      '<td>' + nf(riserva) + ' €</td>' +
+      '<td><b>' + nf(totale) + ' €</b></td>' +
+      '<td class="neg">−' + nf(floor, 1) + '%</td>' +
+      '<td>' + nf(totale / cap * 100, 1) + '%</td></tr>';
+  });
+  html += '</table>';
+  $("fOut").innerHTML = html;
 }
 
 
