@@ -49,6 +49,7 @@
   nav button:nth-child(9) { --c: #facc15; }  /* Confronto — giallo */
   nav button:nth-child(10) { --c: #a3e635; }  /* Ladder — lime */
   nav button:nth-child(11) { --c: #e879f9; }  /* Calendario — fucsia */
+  nav button:nth-child(12) { --c: #38bdf8; }  /* IV implicita — cielo */
   main { max-width: 680px; margin: 0 auto; padding: 14px; }
   section { display: none; }
   section.active { display: block; }
@@ -193,6 +194,7 @@
   <button data-tab="conf">Confronto</button>
   <button data-tab="lad">Ladder</button>
   <button data-tab="cal">Calendario</button>
+  <button data-tab="ivs">IV implicita</button>
 </nav>
 <main>
 
@@ -521,6 +523,28 @@
     "In scadenza" = meno di 3 mesi: quando una trancia entra in questa zona, il rinnovo si prepara (o si anticipa se il cricchetto della tab Ladder è scattato).
     Strike freschi = −15% e −30% dall'indice attuale: il confronto col vecchio strike dice quanto si è spostato il mercato da quando l'hai comprata.
     Se le due scadenze sono troppo vicine (meno di 3 mesi di sfasamento) le tranci non sono scaglionate: rischio di rinegoziare tutto insieme.
+  </div>
+</section>
+
+<!-- ================= IV IMPLICITA (BS INVERSA) ================= -->
+<section id="ivs">
+  <h2>IV implicita — quanto paghi la paura (KID + listino)</h2>
+  <div class="grid">
+    <div><label for="ivTipo">Tipo (dal KID)</label>
+      <select id="ivTipo"><option value="put">Put</option><option value="call">Call</option></select></div>
+    <div><label for="ivS">Prezzo del sottostante S (dal broker)</label><input id="ivS" type="number" inputmode="decimal" placeholder="es. 656.10" /></div>
+    <div><label for="ivK">Strike K (dal KID)</label><input id="ivK" type="number" inputmode="decimal" placeholder="es. 590" /></div>
+    <div><label for="ivP">Parità P = n. CW per 1 azione (dal KID; USA = 1)</label><input id="ivP" type="number" inputmode="decimal" value="1" /></div>
+    <div><label for="ivScad">Data di scadenza (dal KID)</label><input id="ivScad" type="date" /></div>
+    <div><label for="ivPrem">Premio per strumento — la Lettera (dal broker)</label><input id="ivPrem" type="number" inputmode="decimal" placeholder="es. 0.13" /></div>
+    <div class="full"><label for="ivRef">IV di riferimento (%) — VXN per NDX, VIX per S&P (opzionale)</label><input id="ivRef" type="number" inputmode="decimal" placeholder="es. 24" /></div>
+  </div>
+  <button class="btn" onclick="calcIVS()">Estrai la IV</button>
+  <div class="results" id="ivOut"></div>
+  <div class="note">
+    Tutto quello che serve, niente di più: dal <b>KID</b> prendi tipo, strike, parità e data di scadenza; dal <b>broker</b> il prezzo del sottostante e la Lettera del CW.
+    tasso 2% e dividendo 0 fissi internamente (per le put di protezione contano poco). La IV è la volatilità che rende il premio quotato uguale al valore teorico:
+    confrontala col VXN/VIX — entro 2 punti = prezzo onesto; molto sopra = paura a pagamento extra.
   </div>
 </section>
 
@@ -1379,6 +1403,57 @@ function calcCal() {
   });
   $("calOut").innerHTML = html;
 }
+
+function calcIVS() {
+  const S = num("ivS"), K = num("ivK"), P = num("ivP") || 1, prem = num("ivPrem"), ref = num("ivRef");
+  const tipo = $("ivTipo").value, scad = $("ivScad").value;
+  if ([S, K, prem].some(isNaN) || S <= 0 || K <= 0 || P <= 0 || prem <= 0)
+    return void ($("ivOut").innerHTML = err("Compila prezzo del sottostante, strike e premio (tutti > 0)."));
+  if (!scad)
+    return void ($("ivOut").innerHTML = err("Inserisci la data di scadenza che trovi nel KID."));
+  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const gg = Math.round((new Date(scad + "T00:00:00") - oggi) / 864e5);
+  if (gg <= 0)
+    return void ($("ivOut").innerHTML = err("La scadenza deve essere nel futuro."));
+  const r = 0.02, q = 0, T = gg / 365;      // fissi internamente: per la IV contano poco
+  const perAzione = prem * P;               // valore per 1 azione (convenzione: premio = valore ÷ P)
+  const intrin = tipo === "call" ? Math.max(S - K, 0) : Math.max(K - S, 0);
+  if (perAzione - intrin <= 0)
+    return void ($("ivOut").innerHTML = err("Il premio è tutto intrinseco (o sotto): zero valore tempo → IV non stimabile."));
+  const bsV = iv => {
+    const d1 = (Math.log(S / K) + (r + 0.5 * iv * iv) * T) / (iv * Math.sqrt(T));
+    const d2 = d1 - iv * Math.sqrt(T);
+    return tipo === "call"
+      ? S * ncdf(d1) - K * Math.exp(-r * T) * ncdf(d2)
+      : K * Math.exp(-r * T) * ncdf(-d2) - S * ncdf(-d1);
+  };
+  if (bsV(3) < perAzione)
+    return void ($("ivOut").innerHTML = err("Premio troppo alto anche con volatilità 300%: ricontrolla S, K, parità o premio."));
+  let lo = 1e-4, hi = 3;                    // bisezione: la IV che eguaglia il premio quotato
+  for (let i = 0; i < 90; i++) {
+    const mid = (lo + hi) / 2;
+    (bsV(mid) < perAzione) ? lo = mid : hi = mid;
+  }
+  const iv = (lo + hi) / 2;
+  const d1 = (Math.log(S / K) + (r + 0.5 * iv * iv) * T) / (iv * Math.sqrt(T));
+  const delta = tipo === "call" ? ncdf(d1) : -ncdf(-d1);
+  const dim = t => ' <span style="font-weight:400;font-size:11px;opacity:.7">' + t + "</span>";
+  let out =
+    card("<b>IV IMPLICITA</b>", "<b>" + nf(iv * 100) + " %</b> p.a." + dim("la paura che fa pagare chi ti vende la protezione"), "pos") +
+    card("Delta", nf(delta, 2) + dim("quanta protezione compri per strumento"), "neutral");
+  if (!isNaN(ref) && ref > 0) {
+    const diff = iv * 100 - ref;
+    out += card("<b>Verdetto vs " + nf(ref) + " %</b>",
+      Math.abs(diff) <= 2 ? "onesto: in linea col riferimento (±2 punti)"
+      : diff > 2 ? "PAURA CARA: " + nf(diff) + " punti sopra il riferimento"
+                 : "SCONTO: " + nf(-diff) + " punti sotto — chiediti perché",
+      diff > 2 ? "neg" : "pos");
+  } else {
+    out += card("Confronto", "Metti il VXN (per NDX) o il VIX (per S&P) nel campo opzionale per il verdetto.");
+  }
+  $("ivOut").innerHTML = out;
+}
+
 oModeCol();
 </script>
 </body>
