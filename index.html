@@ -54,10 +54,10 @@
   main { max-width: 680px; margin: 0 auto; padding: 14px; }
   section { display: none; }
   section.active { display: block; }
-  h2 { font-size: 15px; margin-bottom: 10px; color: #f8fafc; }
+  h2 { font-size: 17px; margin-bottom: 10px; color: #f8fafc; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .grid .full { grid-column: 1 / -1; }
-  label { display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin-bottom: 4px; }
+  label { display: block; font-size: 14px; font-weight: 600; color: #cbd5e1; margin-bottom: 4px; }
   input, select {
     width: 100%; padding: 11px 10px; font-size: 16px; border: 1px solid #334155;
     border-radius: 10px; background: #0f172a; color: #f1f5f9; appearance: none;
@@ -71,8 +71,9 @@
     background: #1e293b; border: 1px solid #334155; border-radius: 12px;
     padding: 10px 12px; display: flex; justify-content: space-between; align-items: baseline;
   }
-  .card .v { font-weight: 700; font-size: 16px; white-space: nowrap; }
-  .card .k { font-size: 12px; color: #94a3b8; }
+  .card .v { font-weight: 700; font-size: 19px; white-space: nowrap; }
+  .card .k { font-size: 14px; color: #94a3b8; }
+  #costoOut .card .v { white-space: normal; text-align: right; font-size: 21px; }
   .pos { color: #4ade80; } .neg { color: #f87171; } .neutral { color: #60a5fa; }
   .fblock { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px 12px; }
   .fblock .t { display: block; font-weight: 700; font-size: 14px; color: #fb923c; margin-bottom: 4px; }
@@ -87,7 +88,7 @@
   .card.cardHero .v { font-size: 20px; font-weight: 800; }
   #scenTable table.scen td, #scenTable table.scen th { font-size: 15px; padding: 10px 8px; }
   .note {
-    margin-top: 12px; font-size: 11px; color: #94a3b8; line-height: 1.5;
+    margin-top: 12px; font-size: 13px; color: #94a3b8; line-height: 1.6;
     background: #0f172a; border-left: 3px solid #334155; padding: 8px 10px; border-radius: 0 8px 8px 0;
   }
   #istruzioni .note {
@@ -1566,20 +1567,19 @@ function calcCosto() {
   const p2 = p1 * fx;                  // 2. in valuta del sottostante (USD)
   const p3 = p2 / S * 100;             // 3. % del nozionale (sul periodo)
   const p4 = p3 * 365 / gg;            // 4. annualizzato
-  const cls = p4 > 100 || p4 < 0.01 ? "neg" : "pos";
+  const cls = p4 >= 8 ? "neg" : "pos";  // verde sotto l'8%, rosso dall'8% in su
   let out =
     card("<b>1️⃣ Premio × parità</b>", nf(p1, 4) + " € per azione-equivalente", "neutral") +
     card(usd ? "<b>2️⃣ In USD (× cambio)</b>" : "<b>2️⃣ Valuta allineata</b>", nf(p2, 4) + (usd ? " USD" : " € (già in EUR)"), "neutral") +
     card("<b>3️⃣ ÷ S — % del nozionale</b>", nf(p3, 2) + " % in " + nf(gg, 0) + " giorni", "neutral") +
-    card("<b>4️⃣ × 365 ÷ giorni — COSTO ANNUALIZZATO</b>", nf(p4, 2) + " % / anno", cls);
+    card("<b>4️⃣ COSTO ANNUALIZZATO</b>", nf(p4, 2) + " % / anno", cls);
   if (!isNaN(cap) && cap > 0)
-    out += card("Costo annuo sul capitale", nf(cap * p4 / 100) + " € / anno", "neg") +
-           card("Costo fino a scadenza sul capitale", nf(cap * p3 / 100) + " €", "neg");
+    out += card("Costo annuo sul capitale", nf(cap * p4 / 100) + " € / anno", cls) +
+           card("Costo fino a scadenza sul capitale", nf(cap * p3 / 100) + " €", "neutral");
   if (p4 > 100) out += card("🚨 Sanity check", "oltre 100% annuo: quasi sicuramente parità girata — rileggi il KID (CW per azione vs azioni per CW)", "neg");
   else if (p4 < 0.01) out += card("🚨 Sanity check", "quasi zero: quasi sicuramente parità girata — rileggi il KID", "neg");
-  else if (p4 > 30) out += card("⚠️ Caro", "sopra il 30% annuo: tail insurance proibitiva (AVGO-style) — confronta con l'indice", "neg");
-  else if (p4 >= 8) out += card("ℹ️ Fascia alta", "8–30% annuo: cara — tipica di singola azione tech, non di un paniere", "neutral");
-  else if (p4 >= 3) out += card("🆗 Fascia indice", "3–8% annuo: il costo normale di assicurare un paniere per un anno", "pos");
+  else if (p4 >= 8) out += card("❌ Cara", "dall'8% annuo in su: costa troppo per un paniere — da pagare solo per tail insurance su singola azione", "neg");
+  else if (p4 >= 3) out += card("✅ Fascia indice", "3–8% annuo: il costo normale di assicurare un paniere per un anno", "pos");
   else out += card("✅ Economico", "sotto il 3% annuo: assicurazione da routine — verifica che strike/scadenza siano quelli che volevi", "pos");
   $("costoOut").innerHTML = out;
 }
