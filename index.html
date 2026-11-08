@@ -299,14 +299,14 @@
     <div><label for="hPrem">Premio per strumento</label><input id="hPrem" type="number" inputmode="decimal" placeholder="es. 1.2" /></div>
     <div><label for="hP">Parità P (CW per 1 azione)</label><input id="hP" type="number" inputmode="decimal" value="1" /></div>
     <div><label for="hProt">Protezione desiderata (%)</label><input id="hProt" type="number" inputmode="decimal" value="100" /></div>
+    <div><label for="hDelta">Delta della put |Δ| — opzionale, per delta-matching</label><input id="hDelta" type="number" inputmode="decimal" step="0.01" placeholder="es. 0.25" /></div>
   </div>
   <div id="hDist"></div>
   <button class="btn" onclick="calcHedge()">Calcola hedge</button>
   <div class="results" id="hOut"></div>
   <div class="note">
-    Ipotesi: il portafoglio si muove come il sottostante (beta = 1) e valori calcolati <b>a scadenza</b> (valore tempo ignorato).
-    N = X ÷ S₀ × P × protezione%. Con put su CW su valute: P = 1/parità del KID, e per liquidazione ÷S usa la tab Payoff.
-    Se il portafoglio non è il sottostante stesso (es. un paniere), questo è un'approssimazione: regola N in base alla beta reale.
+    <b>QUANDO LA PARITÀ È ESPRESSA IN NUMERI INTERI</b> (KID azionario: «parità 10» = 10 CW per 1 azione) → INSERISCI IL NUMERO TAL QUALE: P = 10.<br>
+    <b>QUANDO LA PARITÀ È ESPRESSA IN DECIMALI</b> (KID: «1 CW = 0,1 azione», oppure multiplo 0,001 dell'indice, oppure CW su cambio col foglietto in «unità per warrant») → INSERISCI IL RECIPROCO: P = 1 ÷ 0,1 = 10 · P = 1 ÷ 0,001 = 1.000 · P = 1 ÷ (parità del KID di cambio).
   </div>
 </section>
 
@@ -891,9 +891,21 @@ function exportPDF() {
 function calcHedge() {
   const X = num("hX"), S0 = num("hS0"), K = num("hK"), prem = num("hPrem"), P = num("hP");
   let prot = num("hProt");
+  let dlt = num("hDelta");
   if (isNaN(prot)) prot = 100;
-  if ([X, S0, K, prem, P].some(isNaN) || X <= 0 || S0 <= 0 || K <= 0 || P <= 0 || prot <= 0 || prot > 100)
-    return void ($("hOut").innerHTML = err("Compila tutti i campi (X, S₀, K, premio, P > 0; protezione 0–100)."));
+  if (isNaN(dlt)) dlt = 0;
+  if ([X, S0, K, prem, P].some(isNaN) || X <= 0 || S0 <= 0 || K <= 0 || P <= 0 || prot <= 0 || prot > 100 || dlt < 0 || dlt > 1)
+    return void ($("hOut").innerHTML = err("Compila tutti i campi (X, S₀, K, premio, P > 0; protezione 0–100; delta 0–1, es. 0.25)."));
+  const azEq = X / S0;                          // capitale in azioni-equivalenti
+  let dCards = "";
+  if (dlt > 0) {
+    const Ndx = azEq * P / dlt;                 // delta-matching: N = azioni × P ÷ |Δ|
+    const Nd = Math.ceil(Ndx);
+    dCards = card("<b>🎟️ DELTA-MATCHING — strumenti da |Δ|</b>", nf(Nd, 0) + " strumenti", "pos") +
+      card("Delta-matching (esatto)", nf(Ndx, 2), "neutral") +
+      card("Ogni strumento vale", nf(dlt / P, 4) + " azioni-equivalenti", "neutral") +
+      card("Costo della copertura a delta-matching", nf(Nd * prem) + " €", "neg");
+  }
 
   const Nexact = X / S0 * P * prot / 100;
   const N = Math.ceil(Nexact);
@@ -909,6 +921,7 @@ function calcHedge() {
   $("hOut").innerHTML =
     card("<b>Put da comprare (esatto)</b>", nf(Nexact, 2), "neutral") +
     card("<b>Put da comprare (arrotondato ↑)</b>", nf(N, 0) + " strumenti", "pos") +
+    dCards +
     card("Costo della protezione", nf(costo) + " €", "neg") +
     card("Costo in % del capitale", nf(costo / X * 100) + " %", "neg") +
     card("Valore minimo garantito (S→0)", nf(Math.max(floorVal, 0)) + " €", "neutral") +
