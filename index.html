@@ -50,6 +50,7 @@
   nav button:nth-child(10) { --c: #a3e635; }  /* Ladder — lime */
   nav button:nth-child(11) { --c: #e879f9; }  /* Calendario — fucsia */
   nav button:nth-child(12) { --c: #38bdf8; }  /* IV implicita — cielo */
+  nav button:nth-child(13) { --c: #fb7185; }  /* Costo annuo — corallo */
   main { max-width: 680px; margin: 0 auto; padding: 14px; }
   section { display: none; }
   section.active { display: block; }
@@ -196,6 +197,7 @@
   <button data-tab="lad">Ladder</button>
   <button data-tab="cal">Calendario</button>
   <button data-tab="ivs">IV implicita</button>
+  <button data-tab="costo">Costo annuo</button>
 </nav>
 <main>
 
@@ -561,6 +563,30 @@
     Tutto quello che serve, niente di più: dal <b>KID</b> prendi tipo, strike, parità e data di scadenza; dal <b>broker</b> il prezzo del sottostante e la Lettera del CW.
     tasso 2% e dividendo 0 fissi internamente (per le put di protezione contano poco). La IV è la volatilità che rende il premio quotato uguale al valore teorico:
     confrontala col VXN/VIX — entro 2 punti = prezzo onesto; molto sopra = paura a pagamento extra.
+  </div>
+</section>
+
+<!-- ================= COSTO ANNUALIZZATO ================= -->
+<section id="costo">
+  <h2>Costo annuo — i 4 punti della ricetta del KID</h2>
+  <div class="grid">
+    <div><label for="cPrem">Premio per strumento (€)</label><input id="cPrem" type="number" inputmode="decimal" placeholder="es. 1.715" /></div>
+    <div><label for="cP">Parità P (CW per 1 azione)</label><input id="cP" type="number" inputmode="decimal" placeholder="es. 10" /></div>
+    <div><label for="cS">Prezzo sottostante S (nella valuta del KID)</label><input id="cS" type="number" inputmode="decimal" placeholder="es. 293.69" /></div>
+    <div><label for="cVal">Valuta del sottostante</label><select id="cVal" onchange="cValSwap()">
+      <option value="usd">USD</option>
+      <option value="eur">EUR</option>
+    </select></div>
+    <div id="cRowCambio"><label for="cCambio">Cambio EUR/USD (quanti USD per 1 €)</label><input id="cCambio" type="number" inputmode="decimal" placeholder="es. 1.12" /><button class="btn" style="display:block;padding:6px 12px;font-size:13px;margin:6px 0 0" onclick="fetchCambio()">🔄 Cambio live BCE</button><span id="cFxStatus" style="font-size:12px;color:#94a3b8"></span></div>
+    <div><label for="cGG">Giorni a scadenza</label><input id="cGG" type="number" inputmode="decimal" placeholder="es. 133" /></div>
+    <div class="full"><label for="cCap">Capitale da coprire (€) — opzionale</label><input id="cCap" type="number" inputmode="decimal" placeholder="es. 10000" /></div>
+  </div>
+  <button class="btn" onclick="calcCosto()">Calcola il costo annualizzato</button>
+  <div class="results" id="cOut"></div>
+  <div class="note">
+    I 4 punti, come nel libro: <b>1)</b> premio × parità → costo per azione-equivalente (KID in numeri interi → tal quale; KID in decimali → reciproco) ·
+    <b>2)</b> allineare le valute (€ × cambio = USD) · <b>3)</b> ÷ S → % del nozionale · <b>4)</b> × 365 ÷ giorni → annualizzato.
+    Sanity: il risultato deve essere plausibile (regola mentale: 3–8% annuo un indice, 10–25% una singola azione tech); se esce 100× o 0,01× la parità è girata — rileggi il KID.
   </div>
 </section>
 
@@ -1502,6 +1528,58 @@ function calcIVS() {
     out += card("Confronto", "Metti il VXN (per NDX) o il VIX (per S&P) nel campo opzionale per il verdetto.");
   }
   $("ivOut").innerHTML = out;
+}
+
+/* ---------- 13. Costo annualizzato (ricetta 4 punti) ---------- */
+function cValSwap() {
+  $("cRowCambio").style.display = $("cVal").value === "usd" ? "" : "none";
+}
+function calcCosto() {
+  const prem = num("cPrem"), P = num("cP"), S = num("cS"), gg = num("cGG");
+  const usd = $("cVal").value === "usd";
+  const cambio = num("cCambio");
+  const cap = num("cCap");
+  const fx = usd ? (isNaN(cambio) || cambio <= 0 ? NaN : cambio) : 1;
+  if (isNaN(prem) || prem <= 0 || isNaN(P) || P <= 0 || isNaN(S) || S <= 0 || isNaN(gg) || gg <= 0 || isNaN(fx))
+    return void ($("cOut").innerHTML = err(usd
+      ? "Compila: premio (€), parità P, S, cambio EUR/USD e giorni a scadenza."
+      : "Compila: premio (€), parità P, S e giorni a scadenza."));
+  const p1 = prem * P;                 // 1. costo per azione-equivalente, in €
+  const p2 = p1 * fx;                  // 2. in valuta del sottostante (USD)
+  const p3 = p2 / S * 100;             // 3. % del nozionale (sul periodo)
+  const p4 = p3 * 365 / gg;            // 4. annualizzato
+  const cls = p4 > 100 || p4 < 0.01 ? "neg" : "pos";
+  let out =
+    card("<b>1️⃣ Premio × parità</b>", nf(p1, 4) + " € per azione-equivalente", "neutral") +
+    card(usd ? "<b>2️⃣ In USD (× cambio)</b>" : "<b>2️⃣ Valuta allineata</b>", nf(p2, 4) + (usd ? " USD" : " € (già in EUR)"), "neutral") +
+    card("<b>3️⃣ ÷ S — % del nozionale</b>", nf(p3, 2) + " % in " + nf(gg, 0) + " giorni", "neutral") +
+    card("<b>4️⃣ × 365 ÷ giorni — COSTO ANNUALIZZATO</b>", nf(p4, 2) + " % / anno", cls);
+  if (!isNaN(cap) && cap > 0)
+    out += card("Costo annuo sul capitale", nf(cap * p4 / 100) + " € / anno", "neg") +
+           card("Costo fino a scadenza sul capitale", nf(cap * p3 / 100) + " €", "neg");
+  if (p4 > 100) out += card("🚨 Sanity check", "oltre 100% annuo: quasi sicuramente parità girata — rileggi il KID (CW per azione vs azioni per CW)", "neg");
+  else if (p4 < 0.01) out += card("🚨 Sanity check", "quasi zero: quasi sicuramente parità girata — rileggi il KID", "neg");
+  else if (p4 > 30) out += card("⚠️ Caro", "sopra il 30% annuo: tail insurance proibitiva (AVGO-style) — confronta con l'indice", "neg");
+  else if (p4 >= 8) out += card("ℹ️ Fascia alta", "8–30% annuo: cara — tipica di singola azione tech, non di un paniere", "neutral");
+  else if (p4 >= 3) out += card("🆗 Fascia indice", "3–8% annuo: il costo normale di assicurare un paniere per un anno", "pos");
+  else out += card("✅ Economico", "sotto il 3% annuo: assicurazione da routine — verifica che strike/scadenza siano quelli che volevi", "pos");
+  $("cOut").innerHTML = out;
+}
+
+/* ---------- 13b. Cambio EUR/USD live (BCE via frankfurter.app) ---------- */
+async function fetchCambio() {
+  const st = $("cFxStatus");
+  st.textContent = "aggiorno…";
+  try {
+    const r = await fetch("https://api.frankfurter.app/latest?from=EUR&to=USD");
+    const j = await r.json();
+    const v = j && j.rates && j.rates.USD;
+    if (!v) throw new Error("dati");
+    $("cCambio").value = v.toFixed(4);
+    st.textContent = "cambio BCE del " + j.date + ": 1 € = " + v.toFixed(4) + " $";
+  } catch (e) {
+    st.textContent = "non raggiungibile (offline?) — inserisci il cambio a mano";
+  }
 }
 
 oModeCol();
