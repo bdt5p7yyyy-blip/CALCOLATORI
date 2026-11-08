@@ -299,7 +299,6 @@
     <div><label for="hPrem">Premio per strumento</label><input id="hPrem" type="number" inputmode="decimal" placeholder="es. 1.2" /></div>
     <div><label for="hP">Parità P (CW per 1 azione)</label><input id="hP" type="number" inputmode="decimal" value="1" /></div>
     <div><label for="hProt">Protezione desiderata (%)</label><input id="hProt" type="number" inputmode="decimal" value="100" /></div>
-    <div><label for="hDelta">Delta della put |Δ| — opzionale, per delta-matching</label><input id="hDelta" type="number" inputmode="decimal" step="0.01" placeholder="es. 0.25" /></div>
   </div>
   <div id="hDist"></div>
   <button class="btn" onclick="calcHedge()">Calcola hedge</button>
@@ -308,6 +307,22 @@
     <b>QUANDO LA PARITÀ È ESPRESSA IN NUMERI INTERI</b> (KID azionario: «parità 10» = 10 CW per 1 azione) → INSERISCI IL NUMERO TAL QUALE: P = 10.<br>
     <b>QUANDO LA PARITÀ È ESPRESSA IN DECIMALI</b> (KID: «1 CW = 0,1 azione», oppure multiplo 0,001 dell'indice, oppure CW su cambio col foglietto in «unità per warrant») → INSERISCI IL RECIPROCO: P = 1 ÷ 0,1 = 10 · P = 1 ÷ 0,001 = 1.000 · P = 1 ÷ (parità del KID di cambio).
   </div>
+
+  <h2 style="font-size:17px;margin-top:22px">Delta-matching — unità in funzione del delta</h2>
+  <div class="grid">
+    <div class="full"><label for="dmMode">VOCE</label><select id="dmMode" onchange="dmSwap()">
+      <option value="azioni">AZIONI</option>
+      <option value="capitale">CAPITALE</option>
+    </select></div>
+    <div id="dmRowAz"><label for="dmAz">Azioni da coprire</label><input id="dmAz" type="number" inputmode="decimal" placeholder="es. 40" /></div>
+    <div id="dmRowCap" style="display:none"><label for="dmCap">Capitale da coprire (€)</label><input id="dmCap" type="number" inputmode="decimal" placeholder="es. 10000" /></div>
+    <div id="dmRowS0" style="display:none"><label for="dmS0">Prezzo attuale S₀</label><input id="dmS0" type="number" inputmode="decimal" placeholder="es. 26990" /></div>
+    <div id="dmRowProt" style="display:none"><label for="dmProt">Quota da coprire (%)</label><input id="dmProt" type="number" inputmode="decimal" value="100" /></div>
+    <div><label for="dmD">Delta |Δ| (0–1)</label><input id="dmD" type="number" inputmode="decimal" step="0.01" placeholder="es. 0.25" /></div>
+    <div><label for="dmP">Parità P (CW per 1 azione)</label><input id="dmP" type="number" inputmode="decimal" value="1" /></div>
+  </div>
+  <button class="btn" onclick="calcDeltaMatch()">Calcola unità dal delta</button>
+  <div class="results" id="dmOut"></div>
 </section>
 
 <!-- ================= RIACQUISTO NEL BUCO ================= -->
@@ -891,21 +906,9 @@ function exportPDF() {
 function calcHedge() {
   const X = num("hX"), S0 = num("hS0"), K = num("hK"), prem = num("hPrem"), P = num("hP");
   let prot = num("hProt");
-  let dlt = num("hDelta");
   if (isNaN(prot)) prot = 100;
-  if (isNaN(dlt)) dlt = 0;
-  if ([X, S0, K, prem, P].some(isNaN) || X <= 0 || S0 <= 0 || K <= 0 || P <= 0 || prot <= 0 || prot > 100 || dlt < 0 || dlt > 1)
-    return void ($("hOut").innerHTML = err("Compila tutti i campi (X, S₀, K, premio, P > 0; protezione 0–100; delta 0–1, es. 0.25)."));
-  const azEq = X / S0;                          // capitale in azioni-equivalenti
-  let dCards = "";
-  if (dlt > 0) {
-    const Ndx = azEq * P / dlt;                 // delta-matching: N = azioni × P ÷ |Δ|
-    const Nd = Math.ceil(Ndx);
-    dCards = card("<b>🎟️ DELTA-MATCHING — strumenti da |Δ|</b>", nf(Nd, 0) + " strumenti", "pos") +
-      card("Delta-matching (esatto)", nf(Ndx, 2), "neutral") +
-      card("Ogni strumento vale", nf(dlt / P, 4) + " azioni-equivalenti", "neutral") +
-      card("Costo della copertura a delta-matching", nf(Nd * prem) + " €", "neg");
-  }
+  if ([X, S0, K, prem, P].some(isNaN) || X <= 0 || S0 <= 0 || K <= 0 || P <= 0 || prot <= 0 || prot > 100)
+    return void ($("hOut").innerHTML = err("Compila tutti i campi (X, S₀, K, premio, P > 0; protezione 0–100)."));
 
   const Nexact = X / S0 * P * prot / 100;
   const N = Math.ceil(Nexact);
@@ -921,7 +924,6 @@ function calcHedge() {
   $("hOut").innerHTML =
     card("<b>Put da comprare (esatto)</b>", nf(Nexact, 2), "neutral") +
     card("<b>Put da comprare (arrotondato ↑)</b>", nf(N, 0) + " strumenti", "pos") +
-    dCards +
     card("Costo della protezione", nf(costo) + " €", "neg") +
     card("Costo in % del capitale", nf(costo / X * 100) + " %", "neg") +
     card("Valore minimo garantito (S→0)", nf(Math.max(floorVal, 0)) + " €", "neutral") +
@@ -954,6 +956,40 @@ function calcHedge() {
   let el = $("hTable");
   if (!el) { el = document.createElement("div"); el.id = "hTable"; $("hOut").after(el); }
   el.innerHTML = html;
+}
+
+/* ---------- 3b. Delta-matching standalone (due voci) ---------- */
+function dmSwap() {
+  const m = $("dmMode").value;
+  $("dmRowAz").style.display = m === "azioni" ? "" : "none";
+  ["dmRowCap", "dmRowS0", "dmRowProt"].forEach(id => $(id).style.display = m === "capitale" ? "" : "none");
+  // pulizia: azzera i campi della voce nascosta e l'output precedente
+  (m === "azioni" ? ["dmCap", "dmS0", "dmProt"] : ["dmAz"]).forEach(id => $(id).value = "");
+  $("dmOut").innerHTML = "";
+}
+function calcDeltaMatch() {
+  const m = $("dmMode").value;
+  const dlt = num("dmD"), P = num("dmP");
+  let az = NaN, prot = 100, cap = NaN, S0 = NaN;
+  if (m === "azioni") {
+    az = num("dmAz");
+  } else {
+    cap = num("dmCap"); S0 = num("dmS0"); prot = num("dmProt");
+    if (isNaN(prot)) prot = 100;
+    if (!isNaN(cap) && !isNaN(S0) && S0 > 0) az = cap * prot / 100 / S0;
+  }
+  if (isNaN(az) || az <= 0 || isNaN(dlt) || dlt <= 0 || dlt > 1 || isNaN(P) || P <= 0 || prot <= 0 || prot > 100)
+    return void ($("dmOut").innerHTML = err(m === "capitale"
+      ? "Voce CAPITALE: compila Capitale (€), Prezzo attuale S₀ e Delta |Δ| (P > 0)."
+      : "Voce AZIONI: compila Azioni da coprire e Delta |Δ| (P > 0)."));
+  const Ndx = az * P / dlt;
+  const Nd = Math.ceil(Ndx);
+  let out = card("<b>🎟️ STRUMENTI DA COMPRARE</b>", nf(Nd, 0) + " strumenti", "pos") +
+    card("Valore esatto", nf(Ndx, 2), "neutral") +
+    card("Ogni strumento vale", nf(dlt / P, 4) + " azioni-equivalenti", "neutral") +
+    card("Esposizione coperta", nf(Nd * dlt / P, 2) + " azioni-equivalenti", "neutral");
+  if (m === "capitale") out += card("Capitale coperto", nf(Nd * dlt / P * S0) + " €", "neutral");
+  $("dmOut").innerHTML = out;
 }
 
 /* ---------- 3c. Riacquisto / perdita (1/(1-n)) ---------- */
