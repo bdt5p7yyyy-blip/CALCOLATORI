@@ -572,21 +572,28 @@
   <div class="grid">
     <div><label for="cPrem">Premio per strumento (€)</label><input id="cPrem" type="number" inputmode="decimal" placeholder="es. 1.715" /></div>
     <div><label for="cP">Parità P (CW per 1 azione)</label><input id="cP" type="number" inputmode="decimal" placeholder="es. 10" /></div>
-    <div><label for="cS">Prezzo sottostante S (nella valuta del KID)</label><input id="cS" type="number" inputmode="decimal" placeholder="es. 293.69" /></div>
-    <div><label for="cVal">Valuta del sottostante</label><select id="cVal" onchange="cValSwap()">
-      <option value="usd">USD</option>
-      <option value="eur">EUR</option>
-    </select></div>
-    <div id="cRowCambio"><label for="cCambio">Cambio EUR/USD (quanti USD per 1 €)</label><input id="cCambio" type="number" inputmode="decimal" placeholder="es. 1.12" /><button class="btn" style="display:block;padding:6px 12px;font-size:13px;margin:6px 0 0" onclick="fetchCambio()">🔄 Cambio live BCE</button><span id="cFxStatus" style="font-size:12px;color:#94a3b8"></span></div>
+    <div><label for="costoS">Prezzo sottostante S (nella valuta del KID)</label><input id="costoS" type="number" inputmode="decimal" placeholder="es. 293.69" /></div>
+  </div>
+  <div class="links">
+    <button type="button" onclick="setCostoVal('USD', 1.12)">💱 USD</button>
+    <button type="button" onclick="setCostoVal('EUR')">💶 EUR</button>
+  </div>
+  <div class="card" id="cValBox" style="display:none">
+    <span class="k">Valuta del sottostante</span><span class="v neutral" id="cValLabel"></span>
+  </div>
+  <div class="grid">
+    <div id="cRowCambio"><label for="cCambio">Cambio EUR/USD (quanti USD per 1 €)</label><input id="cCambio" type="number" inputmode="decimal" value="1.12" /></div>
+  </div>
     <div><label for="cGG">Giorni a scadenza</label><input id="cGG" type="number" inputmode="decimal" placeholder="es. 133" /></div>
-    <div class="full"><label for="cCap">Capitale da coprire (€) — opzionale</label><input id="cCap" type="number" inputmode="decimal" placeholder="es. 10000" /></div>
+    <div class="full"><label for="costoCap">Capitale da coprire (€) — opzionale</label><input id="costoCap" type="number" inputmode="decimal" placeholder="es. 10000" /></div>
   </div>
   <button class="btn" onclick="calcCosto()">Calcola il costo annualizzato</button>
-  <div class="results" id="cOut"></div>
+  <div class="results" id="costoOut"></div>
   <div class="note">
     I 4 punti, come nel libro: <b>1)</b> premio × parità → costo per azione-equivalente (KID in numeri interi → tal quale; KID in decimali → reciproco) ·
     <b>2)</b> allineare le valute (€ × cambio = USD) · <b>3)</b> ÷ S → % del nozionale · <b>4)</b> × 365 ÷ giorni → annualizzato.
     Sanity: il risultato deve essere plausibile (regola mentale: 3–8% annuo un indice, 10–25% una singola azione tech); se esce 100× o 0,01× la parità è girata — rileggi il KID.
+    Il cambio è preimpostato a 1,12 (rif. 30/10/26, come nella tab Bond FX) e il link "cambio live" apre Google Finance: leggi il cambio e digitalo tu — così funziona ovunque, anche offline.
   </div>
 </section>
 
@@ -1531,17 +1538,28 @@ function calcIVS() {
 }
 
 /* ---------- 13. Costo annualizzato (ricetta 4 punti) ---------- */
-function cValSwap() {
-  $("cRowCambio").style.display = $("cVal").value === "usd" ? "" : "none";
+let cValuta = "usd";
+function setCostoVal(code, rif) {
+  cValuta = code === "EUR" ? "eur" : "usd";
+  if (cValuta === "usd") {
+    $("cCambio").value = String(rif);        // col punto: input type=number rifiuta la virgola
+    $("cRowCambio").style.display = "";
+    $("cValLabel").innerHTML = "USD · 1 € = " + String(rif).replace(".", ",") + " $ <span style=\"font-weight:400;font-size:11px\">(rif. 30/10/26)</span>" +
+      '<a href="https://www.google.com/finance/quote/EUR-USD" target="_blank">cambio live ↗</a>';
+  } else {
+    $("cRowCambio").style.display = "none";
+    $("cValLabel").textContent = "EUR · nessuna conversione";
+  }
+  $("cValBox").style.display = "flex";
 }
 function calcCosto() {
-  const prem = num("cPrem"), P = num("cP"), S = num("cS"), gg = num("cGG");
-  const usd = $("cVal").value === "usd";
+  const prem = num("cPrem"), P = num("cP"), S = num("costoS"), gg = num("cGG");
+  const usd = cValuta === "usd";
   const cambio = num("cCambio");
-  const cap = num("cCap");
+  const cap = num("costoCap");
   const fx = usd ? (isNaN(cambio) || cambio <= 0 ? NaN : cambio) : 1;
   if (isNaN(prem) || prem <= 0 || isNaN(P) || P <= 0 || isNaN(S) || S <= 0 || isNaN(gg) || gg <= 0 || isNaN(fx))
-    return void ($("cOut").innerHTML = err(usd
+    return void ($("costoOut").innerHTML = err(usd
       ? "Compila: premio (€), parità P, S, cambio EUR/USD e giorni a scadenza."
       : "Compila: premio (€), parità P, S e giorni a scadenza."));
   const p1 = prem * P;                 // 1. costo per azione-equivalente, in €
@@ -1563,23 +1581,7 @@ function calcCosto() {
   else if (p4 >= 8) out += card("ℹ️ Fascia alta", "8–30% annuo: cara — tipica di singola azione tech, non di un paniere", "neutral");
   else if (p4 >= 3) out += card("🆗 Fascia indice", "3–8% annuo: il costo normale di assicurare un paniere per un anno", "pos");
   else out += card("✅ Economico", "sotto il 3% annuo: assicurazione da routine — verifica che strike/scadenza siano quelli che volevi", "pos");
-  $("cOut").innerHTML = out;
-}
-
-/* ---------- 13b. Cambio EUR/USD live (BCE via frankfurter.app) ---------- */
-async function fetchCambio() {
-  const st = $("cFxStatus");
-  st.textContent = "aggiorno…";
-  try {
-    const r = await fetch("https://api.frankfurter.app/latest?from=EUR&to=USD");
-    const j = await r.json();
-    const v = j && j.rates && j.rates.USD;
-    if (!v) throw new Error("dati");
-    $("cCambio").value = v.toFixed(4);
-    st.textContent = "cambio BCE del " + j.date + ": 1 € = " + v.toFixed(4) + " $";
-  } catch (e) {
-    st.textContent = "non raggiungibile (offline?) — inserisci il cambio a mano";
-  }
+  $("costoOut").innerHTML = out;
 }
 
 oModeCol();
