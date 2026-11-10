@@ -51,6 +51,7 @@
   nav button:nth-child(11) { --c: #e879f9; }  /* Calendario — fucsia */
   nav button:nth-child(12) { --c: #38bdf8; }  /* IV implicita — cielo */
   nav button:nth-child(13) { --c: #fb7185; }  /* Costo annuo — corallo */
+  nav button:nth-child(14) { --c: #14b8a6; }  /* Confronto Bond — teal */
   main { max-width: 680px; margin: 0 auto; padding: 14px; }
   section { display: none; }
   section.active { display: block; }
@@ -74,6 +75,7 @@
   .card .v { font-weight: 700; font-size: 19px; white-space: nowrap; }
   .card .k { font-size: 14px; color: #94a3b8; }
   #costoOut .card .v { white-space: normal; text-align: right; font-size: 21px; }
+  #cbOut .card .v { white-space: normal; text-align: right; }
   .pos { color: #4ade80; } .neg { color: #f87171; } .neutral { color: #60a5fa; }
   .fblock { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 10px 12px; }
   .fblock .t { display: block; font-weight: 700; font-size: 14px; color: #fb923c; margin-bottom: 4px; }
@@ -199,6 +201,7 @@
   <button data-tab="cal">Calendario</button>
   <button data-tab="ivs">IV implicita</button>
   <button data-tab="costo">Costo annuo</button>
+  <button data-tab="duco">Confronto Bond</button>
 </nav>
 <main>
 
@@ -595,6 +598,30 @@
     <b>2)</b> allineare le valute (€ × cambio = USD) · <b>3)</b> ÷ S → % del nozionale · <b>4)</b> × 365 ÷ giorni → annualizzato.
     Sanity: il risultato deve essere plausibile (regola mentale: 3–8% annuo un indice, 10–25% una singola azione tech); se esce 100× o 0,01× la parità è girata — rileggi il KID.
     Il cambio è preimpostato a 1,12 (rif. 30/10/26, come nella tab Bond FX) e il link "cambio live" apre Google Finance: leggi il cambio e digitalo tu — così funziona ovunque, anche offline.
+  </div>
+</section>
+
+<!-- ================= CONFRONTO BOND ================= -->
+<section id="duco">
+  <h2>Confronto Bond — duration e convessità l'una contro l'altra</h2>
+  <div class="grid">
+    <div class="full" style="margin-top:6px"><b>Bond A</b></div>
+    <div><label for="cbAc">Cedola annua A (%)</label><input id="cbAc" type="number" inputmode="decimal" placeholder="es. 4" /></div>
+    <div><label for="cbAn">Anni alla scadenza A</label><input id="cbAn" type="number" inputmode="numeric" placeholder="es. 5" /></div>
+    <div><label for="cbAy">Rendimento A (%) — <i>oppure lascia vuoto e usa il prezzo</i></label><input id="cbAy" type="number" inputmode="decimal" placeholder="es. 5" /></div>
+    <div class="full"><label for="cbAp">Prezzo A tel quel dal broker (%) — se compilato vince sul rendimento</label><input id="cbAp" type="number" inputmode="decimal" placeholder="es. 95,67" /></div>
+    <div class="full" style="margin-top:6px"><b>Bond B</b></div>
+    <div><label for="cbBc">Cedola annua B (%)</label><input id="cbBc" type="number" inputmode="decimal" placeholder="es. 0" /></div>
+    <div><label for="cbBn">Anni alla scadenza B</label><input id="cbBn" type="number" inputmode="numeric" placeholder="es. 5" /></div>
+    <div><label for="cbBy">Rendimento B (%) — <i>oppure lascia vuoto e usa il prezzo</i></label><input id="cbBy" type="number" inputmode="decimal" placeholder="es. 5" /></div>
+    <div class="full"><label for="cbBp">Prezzo B tel quel dal broker (%) — se compilato vince sul rendimento</label><input id="cbBp" type="number" inputmode="decimal" placeholder="es. 100" /></div>
+    <div class="full"><label for="cbShock">Shock dei tassi (punti % — in giù = negativo)</label><input id="cbShock" type="number" inputmode="decimal" value="1" /></div>
+  </div>
+  <button class="btn" onclick="calcCbond()">Confronta i due bond</button>
+  <div class="results" id="cbOut"></div>
+  <div class="note">
+    La meccanica del libro <b>Bond: la matematica del prezzo</b>: il prezzo è la somma dei flussi scontati (convenzione annuale, rimborso 100), la duration Macaulay è il baricentro dei flussi, la <b>duration modificata</b> è "quanto % perde il prezzo se i tassi salgono dell'1%", la <b>convessità</b> è la correzione sempre a tuo favore (½·C·Δy²).
+    Confronto onesto tra due bond: mai sulla scadenza, sempre su D* (e C, se il confronto è serio). Zero coupon: duration = durata. E ricorda: le due stime differiscono perché la curva sta sopra la tangente — quella con convessità più alta recupera più punti nei movimenti grossi.
   </div>
 </section>
 
@@ -1582,6 +1609,82 @@ function calcCosto() {
   else if (p4 >= 3) out += card("✅ Fascia indice", "3–8% annuo: il costo normale di assicurare un paniere per un anno", "pos");
   else out += card("✅ Economico", "sotto il 3% annuo: assicurazione da routine — verifica che strike/scadenza siano quelli che volevi", "pos");
   $("costoOut").innerHTML = out;
+}
+
+/* ---------- Confronto Bond (duration e convessità) ---------- */
+function cbondMetrics(c, n, y) {
+  const yd = y / 100;
+  let P = 0, wt = 0, ct = 0;
+  for (let t = 1; t <= n; t++) {
+    const cf = t < n ? c : c + 100;
+    const pv = cf / Math.pow(1 + yd, t);
+    P += pv; wt += t * pv; ct += t * (t + 1) * pv;
+  }
+  const D = wt / P;
+  return { P: P, D: D, Ds: D / (1 + yd), C: ct / (P * (1 + yd) * (1 + yd)) };
+}
+/* YTM dal prezzo tel quel: bisezione su cbondMetrics (prezzo scende al salire di y) */
+function cbondYtm(c, n, price) {
+  let lo = -0.99, hi = 100; // y% tra −0,99 e 100: prezzo sempre positivo
+  for (let i = 0; i < 90; i++) {
+    const mid = (lo + hi) / 2;
+    const p = cbondMetrics(c, n, mid).P;
+    if (Math.abs(p - price) < 1e-7) return mid;
+    if (p > price) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+function calcCbond() {
+  const ca = num("cbAc"), na = num("cbAn"), ya = num("cbAy"), pa = num("cbAp");
+  const cb = num("cbBc"), nb = num("cbBn"), yb = num("cbBy"), pb = num("cbBp");
+  let sh = num("cbShock");
+  const out = $("cbOut");
+  const dati = (nome, c, n, y, p) => {
+    if (isNaN(c) || isNaN(n) || n < 1 || n > 60)
+      return { err: "Bond " + nome + ": compila cedola e anni (1-60)" };
+    if (!isNaN(p) && p > 0) {          // prezzo tel quel vince: ricava la YTM
+      if (p < 1e-6) return { err: "Bond " + nome + ": prezzo tel quel non valido" };
+      const y = cbondYtm(c, n, p);
+      if (y <= -0.99 || y >= 99.9) return { err: "Bond " + nome + ": dal prezzo " + nf(p, 2) + " non esce una YTM sensata — ricontrolla prezzo, cedola e anni" };
+      return { m: cbondMetrics(c, n, y), y: y, yDaPrezzo: true };
+    }
+    if (isNaN(y)) return { err: "Bond " + nome + ": serve il rendimento % oppure il prezzo tel quel" };
+    return { m: cbondMetrics(c, n, y), y: y, yDaPrezzo: false };
+  };
+  const A = dati("A", ca, na, ya, pa), B = dati("B", cb, nb, yb, pb);
+  if (A.err || B.err) { out.innerHTML = err((A.err || "") + (A.err && B.err ? " · " : "") + (B.err || "")); return; }
+  if (isNaN(sh)) sh = 1;
+  const dy = sh / 100;
+  const dP  = m => -m.Ds * dy * 100;
+  const dPC = m => (-m.Ds * dy + 0.5 * m.C * dy * dy) * 100;
+  const segno = sh > 0 ? "+" : "";
+  const row = (nome, r) => {
+    let h = '<div style="margin:14px 0 4px;font-weight:800;color:#14b8a6">' + nome + '</div>' +
+      (r.yDaPrezzo
+        ? card("YTM ricavata dal prezzo tel quel", nf(r.y, 2) + " %", "pos")
+        : card("Prezzo (somma flussi scontati)", nf(r.m.P, 2), "neutral")) +
+      card("Duration Macaulay", nf(r.m.D, 2) + " anni", "neutral") +
+      card("Duration modificata D*", nf(r.m.Ds, 2), "neutral") +
+      card("Convessità C", nf(r.m.C, 1), "neutral") +
+      card("A " + segno + nf(sh, 2) + "% tassi (solo D*)", nf(dP(r.m), 2) + " %", dP(r.m) >= 0 ? "pos" : "neg") +
+      card("A " + segno + nf(sh, 2) + "% tassi (D* + convessità)", nf(dPC(r.m), 2) + " %", dPC(r.m) >= 0 ? "pos" : "neg");
+    return h;
+  };
+  let html = row("Bond A", A) + row("Bond B", B);
+  const AM = A.m, BM = B.m;
+  const gA = dPC(AM), gB = dPC(BM); // variazione % stimata (D* + convessità)
+  if (Math.abs(AM.Ds - BM.Ds) < 0.05) {
+    html += card("⚖️ Verdetto", "PARI: duration praticamente identiche (D* " + nf(AM.Ds, 2) + " vs " + nf(BM.Ds, 2) + ") — a parità di shock il colpo è lo stesso", "neutral");
+  } else {
+    const vinc = gA > gB ? "A" : "B", perd = gA > gB ? "B" : "A";
+    const gV = Math.max(gA, gB), gP = Math.min(gA, gB);
+    const dv = vinc === "A" ? AM : BM, dp = vinc === "A" ? BM : AM;
+    const perche = sh >= 0
+      ? "con i tassi in salita dura di meno (D* " + nf(dv.Ds, 2) + " vs " + nf(dp.Ds, 2) + ")"
+      : "con i tassi in discesa guadagna di più (D* " + nf(dv.Ds, 2) + " vs " + nf(dp.Ds, 2) + ")";
+    html += card("⚖️ Verdetto", "Bond " + vinc + " meglio del Bond " + perd + ": " + perche + ". A " + segno + nf(sh, 2) + "%: " + nf(gV, 2) + "% contro " + nf(gP, 2) + "%", "pos");
+  }
+  $("cbOut").innerHTML = html;
 }
 
 oModeCol();
