@@ -52,6 +52,7 @@
   nav button:nth-child(12) { --c: #38bdf8; }  /* IV implicita — cielo */
   nav button:nth-child(13) { --c: #fb7185; }  /* Costo annuo — corallo */
   nav button:nth-child(14) { --c: #14b8a6; }  /* Confronto Bond — teal */
+  nav button:nth-child(15) { --c: #34d399; }  /* Scala — smeraldo */
   main { max-width: 680px; margin: 0 auto; padding: 14px; }
   section { display: none; }
   section.active { display: block; }
@@ -87,6 +88,7 @@
   #oMode option.oytm { color: #4ade80; }
   .card.cardHero { background: rgba(74, 222, 128, 0.22); border-color: #4ade80; }
   #ivOut .card .v { white-space: normal; text-align: right; }
+  #scOut .fr { border-color: #4ade80; background: rgba(74, 222, 128, 0.12); }
   .card.cardHero .v { font-size: 20px; font-weight: 800; }
   #scenTable table.scen td, #scenTable table.scen th { font-size: 15px; padding: 10px 8px; }
   .note {
@@ -202,6 +204,7 @@
   <button data-tab="ivs">IV implicita</button>
   <button data-tab="costo">Costo annuo</button>
   <button data-tab="duco">Confronto Bond</button>
+  <button data-tab="scala">Scala</button>
 </nav>
 <main>
 
@@ -622,6 +625,22 @@
   <div class="note">
     La meccanica del libro <b>Bond: la matematica del prezzo</b>: il prezzo è la somma dei flussi scontati (convenzione annuale, rimborso 100), la duration Macaulay è il baricentro dei flussi, la <b>duration modificata</b> è "quanto % perde il prezzo se i tassi salgono dell'1%", la <b>convessità</b> è la correzione sempre a tuo favore (½·C·Δy²).
     Confronto onesto tra due bond: mai sulla scadenza, sempre su D* (e C, se il confronto è serio). Zero coupon: duration = durata. E ricorda: le due stime differiscono perché la curva sta sopra la tangente — quella con convessità più alta recupera più punti nei movimenti grossi.
+  </div>
+</section>
+
+<!-- ================= SCALA STRIKE ================= -->
+<section id="scala">
+  <h2>Scala Strike — la discesa a gradini dal sottostante a −30%</h2>
+  <div class="grid">
+    <div><label for="scS">Sottostante S (prezzo attuale)</label><input id="scS" type="number" inputmode="decimal" placeholder="es. 656.10" /></div>
+  </div>
+  <button class="btn" onclick="calcScala()">Costruisci la scala</button>
+  <div class="results" id="scOut"></div>
+  <div class="note">
+    I gradini di casa: <b>−2% alla volta fino a −10%</b> (le correzioni brevi), poi <b>−5% fino a −30%</b> (franchigia seria e incendi).
+    Oltre −30% non ha senso: le put profonde costano briciole e la franchigia non cambia — il diluvio lo copre già la trancia ★−30%.
+    Le due righe verdi con ★ sono <b>le franchigie della ladder</b> (−15% e −30%): gli ancoraggi del rinnovo.
+    Strike arrotondati in modo sensato: interi sopra 200, un decimale tra 20 e 200, due decimali sotto 20 — poi è l'emittente che decide i tagli veri del listino.
   </div>
 </section>
 
@@ -1688,6 +1707,25 @@ function calcCbond() {
 }
 
 oModeCol();
+
+
+function calcScala() {
+  const S = num("scS");
+  if (isNaN(S) || S <= 0)
+    return void ($("scOut").innerHTML = err("Inserisci il prezzo attuale del sottostante (> 0)."));
+  const d = S >= 200 ? 0 : S >= 20 ? 1 : 2;
+  const gradini = [0, -2, -4, -6, -8, -10, -15, -20, -25, -30];
+  let out = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  gradini.forEach(function(p) {
+    const k = S * (1 + p / 100);
+    const fr = p === -15 || p === -30;
+    out += '<div class="card' + (fr ? " fr" : "") + '"><span class="k">' +
+      (p === 0 ? "S adesso" : p + "%") + (fr ? " ★" : "") +
+      '</span><span class="v"><b>' + nf(k, d) + "</b></span></div>";
+  });
+  out += "</div>";
+  $("scOut").innerHTML = out;
+}
 </script>
 </body>
 </html>
