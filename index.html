@@ -53,6 +53,7 @@
   nav button:nth-child(13) { --c: #fb7185; }  /* Costo annuo — corallo */
   nav button:nth-child(14) { --c: #14b8a6; }  /* Confronto Bond — teal */
   nav button:nth-child(15) { --c: #34d399; }  /* Scala — smeraldo */
+  nav button:nth-child(16) { --c: #f59e0b; }  /* Tracker — ambra */
   main { max-width: 680px; margin: 0 auto; padding: 14px; }
   section { display: none; }
   section.active { display: block; }
@@ -89,6 +90,17 @@
   .card.cardHero { background: rgba(74, 222, 128, 0.22); border-color: #4ade80; }
   #ivOut .card .v { white-space: normal; text-align: right; }
   #scOut .fr { border-color: #4ade80; background: rgba(74, 222, 128, 0.12); }
+  #track .leg { background: rgba(255,255,255,0.07); border: 1px solid #334155; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
+  #track .leg.sem-verde { border-color: #4ade80; }
+  #track .leg.sem-giallo { border-color: #fbbf24; background: rgba(251, 191, 36, 0.08); }
+  #track .leg.sem-rosso { border-color: #f87171; background: rgba(248, 113, 113, 0.12); }
+  #track .leg .tit { display: flex; justify-content: space-between; font-size: 12px; color: #cbd5e1; }
+  #track .leg .big { font-size: 22px; font-weight: 700; margin-top: 2px; }
+  #track .leg .det { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+  #track .leg .row { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
+  #track .leg input { flex: 1; padding: 9px; font-size: 15px; }
+  #track .leg button { padding: 9px 13px; font-size: 13px; font-weight: 700; color: #0f172a; background: #38bdf8; border: none; border-radius: 10px; cursor: pointer; }
+  #track .leg button.del { background: rgba(248,113,113,0.25); color: #f87171; }
   .card.cardHero .v { font-size: 20px; font-weight: 800; }
   #scenTable table.scen td, #scenTable table.scen th { font-size: 15px; padding: 10px 8px; }
   .note {
@@ -205,6 +217,7 @@
   <button data-tab="costo">Costo annuo</button>
   <button data-tab="duco">Confronto Bond</button>
   <button data-tab="scala">Scala</button>
+  <button data-tab="track">Tracker</button>
 </nav>
 <main>
 
@@ -641,6 +654,27 @@
     Oltre −30% non ha senso: le put profonde costano briciole e la franchigia non cambia — il diluvio lo copre già la trancia ★−30%.
     Le due righe verdi con ★ sono <b>le franchigie della ladder</b> (−15% e −30%): gli ancoraggi del rinnovo.
     Strike arrotondati in modo sensato: interi sopra 200, un decimale tra 20 e 200, due decimali sotto 20 — poi è l'emittente che decide i tagli veri del listino.
+  </div>
+</section>
+
+</section>
+
+<!-- ================= TRACKER PUT DIFENSIVE ================= -->
+<section id="track">
+  <h2>Tracker put difensive — il cronicometro della scala</h2>
+  <div class="grid">
+    <div><label for="tkNome">Sottostante (nome)</label><input id="tkNome" type="text" placeholder="es. NDX o AVGO" /></div>
+    <div><label for="tkS0">S all'acquisto</label><input id="tkS0" type="number" inputmode="decimal" placeholder="es. 27000" /></div>
+    <div><label for="tkK">Strike K</label><input id="tkK" type="number" inputmode="decimal" placeholder="es. 24000" /></div>
+    <div><label for="tkPrem">Premio pagato per 1 sottostante</label><input id="tkPrem" type="number" inputmode="decimal" placeholder="premio CW x parita'" /></div>
+    <div><label for="tkIV">IV all'acquisto (%)</label><input id="tkIV" type="number" inputmode="decimal" placeholder="es. 22" /></div>
+    <div><label for="tkAcq">Data acquisto</label><input id="tkAcq" type="date" /></div>
+    <div class="full"><label for="tkScad">Scadenza (KID)</label><input id="tkScad" type="date" /></div>
+  </div>
+  <button class="btn" onclick="tkAdd()">Aggiungi la put alla scala</button>
+  <div class="results" id="tkOut"></div>
+  <div class="note">
+    <b>Semaforo</b>: <span style="color:#4ade80">verde</span> = residuo sopra il 75% · <span style="color:#fbbf24">giallo</span> = 70-75%, pensa al rolling · <span style="color:#f87171">rosso</span> = sotto il 70%, roll ora · ⏱ a 45 giorni dalla scadenza la finestra rolling si apre comunque · premio per 1 sottostante = premio CW x parita'.
   </div>
 </section>
 
@@ -1726,6 +1760,123 @@ function calcScala() {
   out += "</div>";
   $("scOut").innerHTML = out;
 }
+
+/* ---------- 16. Tracker put difensive ---------- */
+var TK_MEM = null;
+function tkLoad() {
+  if (TK_MEM) return TK_MEM;
+  try { TK_MEM = JSON.parse(localStorage.getItem("putTrackerV1")) || []; }
+  catch (e) { TK_MEM = []; }
+  return TK_MEM;
+}
+function tkSave() {
+  try { localStorage.setItem("putTrackerV1", JSON.stringify(TK_MEM)); } catch (e) {}
+}
+function tkGG(a, b) { return Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / 864e5); }
+function tkOggi() {
+  var d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function tkVal(leg, S, dataISO) {
+  var gg = tkGG(dataISO, leg.scad);
+  if (gg <= 0) return Math.max(leg.k - S, 0);
+  return bsPut(S, leg.k, gg / 365, leg.iv / 100, 0.02);
+}
+function tkAdd() {
+  var nome = $("tkNome").value.trim(), s0 = num("tkS0"), k = num("tkK"),
+      prem = num("tkPrem"), iv = num("tkIV"), scad = $("tkScad").value, acq = $("tkAcq").value || tkOggi();
+  if (!nome) return void ($("tkOut").innerHTML = err("Dai un nome al sottostante (es. NDX)."));
+  if ([s0, k, prem, iv].some(isNaN) || s0 <= 0 || k <= 0 || prem <= 0 || iv <= 0)
+    return void ($("tkOut").innerHTML = err("Compila S, K, premio e IV (tutti > 0)."));
+  if (!scad) return void ($("tkOut").innerHTML = err("Inserisci la scadenza dal KID."));
+  if (tkGG(acq, scad) <= 0) return void ($("tkOut").innerHTML = err("La scadenza deve essere dopo l'acquisto."));
+  tkLoad().push({ id: Date.now(), nome: nome, s0: s0, k: k, prem: prem, iv: iv, dacq: acq, scad: scad, checks: [] });
+  tkSave(); tkRender();
+  ["tkNome", "tkS0", "tkK", "tkPrem", "tkIV", "tkScad"].forEach(function(id) { $(id).value = ""; });
+}
+function tkUpdate(id) {
+  var leg = tkLoad().find(function(x) { return x.id === id; });
+  if (!leg) return;
+  var S = parseFloat(String($("tkS" + id).value).replace(",", "."));
+  if (isNaN(S) || S <= 0) return;
+  var oggi = tkOggi(), v = tkVal(leg, S, oggi);
+  leg.checks = leg.checks.filter(function(c) { return c.d !== oggi; });
+  leg.checks.push({ d: oggi, s: S, v: v });
+  leg.checks.sort(function(a, b) { return a.d < b.d ? -1 : 1; });
+  tkSave(); tkRender();
+}
+function tkDel(id) {
+  TK_MEM = tkLoad().filter(function(x) { return x.id !== id; });
+  tkSave(); tkRender();
+}
+function tkSpark(leg, oggi, Sogg, valOggi, resPct) {
+  var W = 340, H = 150, L = 40, R = 8, T = 12, B = 22;
+  var gTot = tkGG(leg.dacq, leg.scad), gFat = tkGG(leg.dacq, oggi);
+  var vmax = Math.max(leg.prem * 1.35, valOggi * 1.3, 0.001);
+  var px = function(g) { return L + (g / Math.max(gTot, 1)) * (W - L - R); };
+  var py = function(v) { return T + (1 - v / vmax) * (H - T - B); };
+  var g = "";
+  for (var i = 0; i <= 40; i++) {
+    var gg = Math.max(gFat + (gTot - gFat) * i / 25, 0);
+    var v = tkVal(leg, Sogg, gg === 0 ? leg.scad : isoAdd(leg.dacq, Math.round(gg)));
+    g += (i ? "L" : "M") + px(gg).toFixed(1) + "," + py(v).toFixed(1) + " ";
+  }
+  var y70 = py(leg.prem * 0.7), dots = "";
+  leg.checks.forEach(function(c) {
+    var gc = tkGG(leg.dacq, c.d);
+    dots += '<circle cx="' + px(gc).toFixed(1) + '" cy="' + py(c.v).toFixed(1) + '" r="4.5" fill="#38bdf8" stroke="#0f172a" stroke-width="1"/>';
+  });
+  return '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:10px;margin-top:8px">' +
+    '<line x1="' + L + '" y1="' + y70 + '" x2="' + (W - R) + '" y2="' + y70 + '" stroke="#f87171" stroke-dasharray="4 4" stroke-width="1.5"/>' +
+    '<text x="' + (W - R) + '" y="' + (y70 - 3) + '" font-size="11" fill="#f87171" text-anchor="end">soglia −30%</text>' +
+    '<line x1="' + L + '" y1="' + py(leg.prem) + '" x2="' + (W - R) + '" y2="' + py(leg.prem) + '" stroke="#64748b" stroke-dasharray="2 4" stroke-width="1"/>' +
+    '<text x="' + (L + 2) + '" y="' + (py(leg.prem) - 3) + '" font-size="11" fill="#94a3b8">100%</text>' +
+    '<line x1="' + px(gFat) + '" y1="' + T + '" x2="' + px(gFat) + '" y2="' + (H - B) + '" stroke="#f8fafc" stroke-dasharray="3 3" opacity="0.6" stroke-width="1"/>' +
+    '<path d="' + g + '" fill="none" stroke="' + (resPct < 70 ? "#f87171" : resPct <= 75 ? "#fbbf24" : "#4ade80") + '" stroke-width="4" stroke-linejoin="round"/>' + dots +
+    '<line x1="' + L + '" y1="' + (H - B) + '" x2="' + (W - R) + '" y2="' + (H - B) + '" stroke="#475569" stroke-width="1"/>' +
+    '<text x="' + (W - R) + '" y="' + (H - 5) + '" font-size="11" fill="#94a3b8" text-anchor="end">scadenza</text>' +
+    '<text x="' + px(gFat) + '" y="' + (H - 5) + '" font-size="11" fill="#f8fafc" text-anchor="middle">oggi</text></svg>';
+}
+function isoAdd(iso, gg) {
+  var d = new Date(iso + "T00:00:00");
+  d.setDate(d.getDate() + gg);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function tkRender() {
+  var legs = tkLoad(), oggi = tkOggi(), out = "";
+  if (!legs.length) { $("tkOut").innerHTML = '<div class="card"><span class="k">Nessuna put in scala: aggiungi la prima con il modulo qui sopra.</span></div>'; return; }
+  legs.forEach(function(leg) {
+    var ggRes = tkGG(oggi, leg.scad);
+    var cLast = leg.checks.length ? leg.checks[leg.checks.length - 1] : null;
+    var Sogg = cLast ? cLast.s : leg.s0;
+    var valOggi = tkVal(leg, Sogg, oggi);
+    var resPct = valOggi / leg.prem * 100;
+    var cls = resPct < 70 ? "rosso" : resPct <= 75 ? "giallo" : "verde";
+    var verdetto = resPct < 70
+      ? "ROSSO: residuo sotto il 70% — pensa al rolling ADESSO, l'uscita recupera ancora il " + nf(resPct, 0) + "% del premio"
+      : resPct <= 75
+        ? "GIALLO: ti avvicini al −30% — inizia a guardare le serie nuove per il roll"
+        : "VERDE: la gamba respira — " + nf(resPct, 0) + "% del premio ancora in piedi";
+    if (ggRes <= 0) verdetto = "SCADUTA: incassa o verifica l'esercizio con il broker";
+    var theta = valOggi - tkVal(leg, Sogg, isoAdd(oggi, -1));
+    var fine = ggRes <= 45 && ggRes > 0
+      ? '<div class="det" style="color:#fbbf24;font-weight:700">⏱ ' + ggRes + ' giorni alla fine: finestra rolling dottrinale APERTA (4-6 settimane prima, mai alla scadenza vera)</div>' : "";
+    out += '<div class="leg sem-' + cls + '">' +
+      '<div class="tit"><span><b>' + leg.nome + '</b> · K ' + nf(leg.k, leg.k >= 200 ? 0 : 2) + ' · scad. ' + leg.scad + '</span><span>' + ggRes + ' gg</span></div>' +
+      '<div class="big" style="color:' + (cls === "verde" ? "#4ade80" : cls === "giallo" ? "#fbbf24" : "#f87171") + '">' +
+      (resPct >= 100 ? "+" : "") + nf(resPct - 100, 1) + '% dal premio <span style="font-size:13px;font-weight:400"> · uscita recupera ' + nf(resPct, 0) + '%</span></div>' +
+      '<div class="det">valore oggi ' + nf(valOggi, 4) + ' · premio ' + nf(leg.prem, 4) + ' · IV bloccata ' + nf(leg.iv, 1) + '% · tempo bruciato oggi: ' + (theta <= 0 ? "" : "+") + nf(theta, 4) + '</div>' +
+      '<div class="det" style="color:' + (cls === "verde" ? "#4ade80" : cls === "giallo" ? "#fbbf24" : "#f87171") + ';font-weight:700">' + verdetto + '</div>' + fine +
+      '<div class="row"><input id="tkS' + leg.id + '" type="number" inputmode="decimal" value="' + Sogg + '" />' +
+      '<button onclick="tkUpdate(' + leg.id + ')">Aggiorna</button>' +
+      '<button class="del" onclick="tkDel(' + leg.id + ')">Elimina</button></div>' +
+      tkSpark(leg, oggi, Sogg, valOggi, resPct) +
+      "</div>";
+  });
+  $("tkOut").innerHTML = out;
+}
+document.addEventListener("DOMContentLoaded", tkRender);
+
 </script>
 </body>
 </html>
