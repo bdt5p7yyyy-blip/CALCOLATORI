@@ -54,6 +54,7 @@
   nav button:nth-child(14) { --c: #14b8a6; }  /* Confronto Bond — teal */
   nav button:nth-child(15) { --c: #34d399; }  /* Scala — smeraldo */
   nav button:nth-child(16) { --c: #f59e0b; }  /* Tracker — ambra */
+  nav button:nth-child(17) { --c: #c084fc; }  /* Bond TRY — viola */
   main { max-width: 680px; margin: 0 auto; padding: 14px; }
   section { display: none; }
   section.active { display: block; }
@@ -89,6 +90,8 @@
   #oMode option.oytm { color: #4ade80; }
   .card.cardHero { background: rgba(74, 222, 128, 0.22); border-color: #4ade80; }
   #ivOut .card .v { white-space: normal; text-align: right; }
+  #btryOut .v { white-space: normal; text-align: right; word-break: break-word; }
+  #btryOut .k { white-space: normal; }
   #scOut .fr { border-color: #4ade80; background: rgba(74, 222, 128, 0.12); }
   #track .leg { background: rgba(255,255,255,0.07); border: 1px solid #334155; border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
   #track .leg.sem-verde { border-color: #4ade80; }
@@ -218,6 +221,7 @@
   <button data-tab="duco">Confronto Bond</button>
   <button data-tab="scala">Scala</button>
   <button data-tab="track">Tracker</button>
+  <button data-tab="btry">Bond TRY</button>
 </nav>
 <main>
 
@@ -676,6 +680,38 @@
   <div class="note">
     <b>Semaforo</b>: <span style="color:#4ade80">verde</span> = residuo sopra il 75% · <span style="color:#fbbf24">giallo</span> = 70-75%, pensa al rolling · <span style="color:#f87171">rosso</span> = sotto il 70%, roll ora · ⏱ a 45 giorni dalla scadenza la finestra rolling si apre comunque · premio per 1 sottostante = premio CW x parita'.
   </div>
+</section>
+
+<!-- ================= BOND TRY SIMULatore & TRACKER ================= -->
+<section id="btry">
+  <h2>Bond TRY — singolo bond, tracker giornaliero</h2>
+  <div class="grid">
+    <div class="full"><label for="btryFx">Cambio spot (1 EUR = X TRY) · <a href="https://www.google.com/finance/quote/EUR-TRY" target="_blank" style="color:#38bdf8">live EUR/TRY ↗</a></label><input id="btryFx" type="number" inputmode="decimal" placeholder="es. 55,70" oninput="btryRender()" /></div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:4px">
+    <button class="btn" style="flex:1" onclick="btryDay()">📌 Registra la giornata col cambio sopra</button>
+    <button class="btn" id="btryLock" style="min-width:120px;background:rgba(248,113,113,0.25);color:#f87171;font-weight:700" onclick="btryToggleLock()">🔒 Blocca</button>
+  </div>
+  <hr style="border-color:#334155;margin:14px 0" />
+  <h3 style="margin:6px 0 8px;font-size:15px">Dati del bond</h3>
+  <div class="grid">
+    <div><label for="bNome">Nome / ISIN</label><input id="bNome" type="text" placeholder="es. BEI TRY 2027" /></div>
+    <div><label for="bNom">Nominale (TRY)</label><input id="bNom" type="number" inputmode="decimal" placeholder="es. 100000" /></div>
+    <div><label for="bTelq">Prezzo tel quel (% nom.)</label><input id="bTelq" type="number" inputmode="decimal" placeholder="es. 106,02" /></div>
+    <div><label for="bRatei">Ratei maturati all'acquisto (% nom.)</label><input id="bRatei" type="number" inputmode="decimal" placeholder="es. 3,5" /></div>
+    <div><label for="bCed">Cedola annua (%)</label><input id="bCed" type="number" inputmode="decimal" placeholder="es. 40" /></div>
+    <div><label for="bS0">Cambio all'acquisto (1 EUR = X TRY)</label><input id="bS0" type="number" inputmode="decimal" placeholder="es. 48,20" /></div>
+    <div><label for="bAcq">Data acquisto</label><input id="bAcq" type="date" /></div>
+    <div><label for="bScad">Scadenza</label><input id="bScad" type="date" /></div>
+    <div><label for="bTax">Aliquota cedola (%)</label><input id="bTax" type="number" inputmode="decimal" placeholder="12,5" value="12.5" /></div>
+    <div><label for="bExit">Rimborso a scadenza (% nom.)</label><input id="bExit" type="number" inputmode="decimal" placeholder="100" /></div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:6px">
+    <button class="btn" style="flex:1;font-size:17px;padding:14px;font-weight:700" onclick="btrySave()">💾 Salva bond</button>
+    <button class="btn" id="btryDelBtn" style="font-size:17px;padding:14px;background:rgba(248,113,113,0.25);color:#f87171;font-weight:700" onclick="btryDel()">🗑 Cancella</button>
+  </div>
+  <div class="results" id="btryOut" style="margin-top:14px"></div>
+  <div id="btryChart"></div>
 </section>
 
 </main>
@@ -1876,6 +1912,159 @@ function tkRender() {
   $("tkOut").innerHTML = out;
 }
 document.addEventListener("DOMContentLoaded", tkRender);
+
+/* ---------- 17. Bond TRY — singolo bond, tracker giornaliero ---------- */
+var BT = null;      // bond singolo {id,nome,nom,telq,ratei0,ced,s0,dacq,scad,sval,exitp,tax,clean0,costoEUR,checks[]}
+var BTRY_IDS = ["bNome","bNom","bTelq","bRatei","bCed","bS0","bAcq","bScad","bTax","bExit"];
+function btryLoad() {
+  if (BT) return BT;
+  try {
+    var v = JSON.parse(localStorage.getItem("bondTryV1"));
+    BT = Array.isArray(v) ? (v[0] || null) : v;   // migrazione: vecchio array → primo bond
+  } catch (e) { BT = null; }
+  return BT;
+}
+function btrySaveMem() { try { localStorage.setItem("bondTryV1", JSON.stringify(BT)); } catch (e) {} }
+function btryLocked() { try { return localStorage.getItem("bondTryLock") === "1"; } catch (e) { return false; } }
+function btryToggleLock() {
+  try { localStorage.setItem("bondTryLock", btryLocked() ? "0" : "1"); } catch (e) {}
+  btryApplyLock();
+}
+function btryApplyLock() {
+  var l = btryLocked(), btn = $("btryLock");
+  BTRY_IDS.forEach(function(id) { $(id).readOnly = l; });
+  $("btryFx").readOnly = l;
+  $("btryDelBtn").style.display = l ? "none" : "";
+  if (l) { btn.textContent = "🔓 Sblocca"; btn.style.background = "rgba(74,222,128,0.25)"; btn.style.color = "#4ade80"; }
+  else { btn.textContent = "🔒 Blocca"; btn.style.background = "rgba(248,113,113,0.25)"; btn.style.color = "#f87171"; }
+}
+function btryFillForm() {
+  var b = btryLoad();
+  if (!b) return;
+  $("bNome").value = b.nome; $("bNom").value = b.nom; $("bTelq").value = b.telq; $("bRatei").value = b.ratei0;
+  $("bCed").value = b.ced; $("bS0").value = b.s0; $("bAcq").value = b.dacq; $("bScad").value = b.scad;
+  $("bTax").value = b.tax; $("bExit").value = b.exitp;
+  if (!$("btryFx").value && b.checks.length) $("btryFx").value = b.checks[b.checks.length - 1].s;
+}
+function btryGG(a, b) { return Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / 864e5); }
+function btryFxNow(b) {
+  var v = parseFloat(String($("btryFx").value).replace(",", "."));
+  if (isNaN(v) || v <= 0) return b.checks.length ? b.checks[b.checks.length - 1].s : b.s0;
+  return v;
+}
+function btryState(b, d, S) {
+  var ggTot = Math.max(btryGG(b.dacq, b.scad), 1);
+  var ggEl = btryGG(b.dacq, d);
+  var scaduta = ggEl >= ggTot;
+  var f = Math.min(ggEl / ggTot, 1);
+  var clean = b.clean0 + (100 - b.clean0) * f;
+  var rateo = Math.min(b.ratei0 + b.ced * ggEl / 365, b.ced);
+  var dirty = scaduta ? b.exitp + b.ced : clean + rateo;
+  var valEUR = b.nom * dirty / 100 / S;
+  var plN = b.nom * (clean - b.clean0) / 100 / S;
+  var rateoEUR = b.nom * (rateo - b.ratei0) / 100 / S;
+  var t = (b.tax || 12.5) / 100;
+  var cedNetta = rateoEUR * (1 - t);
+  var tot = valEUR - b.costoEUR;
+  var netto = tot - rateoEUR * t;
+  var ann = null;
+  if (ggEl > 0 && b.costoEUR > 0 && 1 + netto / b.costoEUR > 0)
+    ann = (Math.pow(1 + netto / b.costoEUR, 365 / ggEl) - 1) * 100;
+  return { clean: clean, valEUR: valEUR, plN: plN, cedNetta: cedNetta, tot: tot,
+           pct: tot / b.costoEUR * 100, netto: netto, ann: ann,
+           ggEl: ggEl, ggTot: ggTot, ggLeft: Math.max(ggTot - ggEl, 0), scaduta: scaduta };
+}
+function btrySave() {
+  if (btryLocked()) return void ($("btryOut").innerHTML = err("🔒 Bond bloccato: premi Sblocca per modificare."));
+  var nome = $("bNome").value.trim(), nom = num("bNom"), telq = num("bTelq"), ratei = num("bRatei"),
+      ced = num("bCed"), s0 = num("bS0"), acq = $("bAcq").value, scad = $("bScad").value,
+      exitp = num("bExit"), tax = num("bTax");
+  if (!nome) return void ($("btryOut").innerHTML = err("Dai un nome al bond (es. ISIN o 'BEI TRY 2027')."));
+  if ([nom, telq, ratei, ced, s0, exitp].some(isNaN) || nom <= 0 || telq <= 0 || s0 <= 0 || exitp <= 0 || ced < 0 || ratei < 0)
+    return void ($("btryOut").innerHTML = err("Compila tutti i campi numerici (nominale, tel quel, cambio e rimborso > 0)."));
+  if (!scad) return void ($("btryOut").innerHTML = err("Inserisci la scadenza."));
+  var old = btryLoad();
+  var acqF = acq || (old ? old.dacq : tkOggi());
+  if (btryGG(acqF, scad) <= 0) return void ($("btryOut").innerHTML = err("La scadenza deve essere dopo l'acquisto."));
+  BT = { id: old ? old.id : Date.now(), nome: nome, nom: nom, telq: telq, ratei0: ratei, ced: ced,
+    s0: s0, dacq: acqF, scad: scad, sval: 0, exitp: exitp, tax: isNaN(tax) ? 12.5 : tax,
+    clean0: telq - ratei, costoEUR: nom * telq / 100 / s0, checks: old && old.checks ? old.checks : [] };
+  btrySaveMem(); btryRender();
+}
+function btryDel() {
+  if (btryLocked()) return;
+  BT = null; btrySaveMem();
+  BTRY_IDS.forEach(function(id) { $(id).value = ""; });
+  $("btryFx").value = "";
+  btryRender();
+}
+function btryDay() {
+  var b = btryLoad();
+  if (!b) return void ($("btryOut").innerHTML = err("Nessun bond salvato: compilane uno sopra e premi 💾 Salva bond."));
+  var v = parseFloat(String($("btryFx").value).replace(",", "."));
+  if (isNaN(v) || v <= 0) return void ($("btryOut").innerHTML = err("Inserisci sopra il cambio spot (1 EUR = X TRY, > 0)."));
+  var oggi = tkOggi();
+  var st = btryState(b, oggi, v);
+  var prev = b.checks.length ? b.checks[b.checks.length - 1].tot : null;
+  b.checks = b.checks.filter(function(c) { return c.d !== oggi; });
+  b.checks.push({ d: oggi, s: v, tot: st.tot, pct: st.pct, delta: prev === null ? null : st.tot - prev });
+  b.checks.sort(function(a, b2) { return a.d < b2.d ? -1 : 1; });
+  btrySaveMem(); btryRender();
+}
+function btryRender() {
+  btryApplyLock();
+  var b = btryLoad(), oggi = tkOggi(), out = "";
+  if (!b) {
+    btryFillForm();
+    $("btryOut").innerHTML = '<div class="card"><span class="k">Nessun bond salvato: compila i dati sopra e premi 💾 Salva bond.</span></div>';
+    $("btryChart").innerHTML = ""; return;
+  }
+  btryFillForm();
+  var S = btryFxNow(b);
+  var st = btryState(b, oggi, S);
+  var last = b.checks.length ? b.checks[b.checks.length - 1] : null;
+  var dTxt = last && last.delta !== null ? " · oggi " + (last.delta >= 0 ? "+" : "") + nf(last.delta, 2) + " €" : "";
+  var annTxt = st.ann === null ? "—" : (st.ann >= 0 ? "+" : "") + nf(st.ann, 1) + "%";
+  var heroCol = st.ann === null ? "#e2e8f0" : st.ann >= 0 ? "#4ade80" : "#f87171";
+  var heroBg = st.ann === null ? "rgba(148,163,184,0.12)" : st.ann >= 0 ? "rgba(74,222,128,0.15)" : "rgba(248,113,113,0.15)";
+  out += '<div style="border-radius:12px;padding:12px 10px;text-align:center;background:' + heroBg + ';border:2px solid ' + heroCol + '">' +
+    '<div style="font-size:13px;color:#e2e8f0;font-weight:700">RISULTATO NETTO % ANNUALIZZATO</div>' +
+    '<div style="font-size:30px;font-weight:800;color:' + heroCol + ';line-height:1.15">' + annTxt + '</div>' +
+    '<div style="font-size:11px;color:#94a3b8">netto fiscale ' + nf(b.tax || 12.5, 1) + '% su ' + st.ggEl + ' gg · costo ' + nf(b.costoEUR, 2) + ' €</div>' +
+    '</div>';
+  out += '<div class="grid" style="margin-top:10px">' +
+    '<div><span class="k" style="color:#fbbf24">CEDOLA NETTA € (maturata, al cambio spot)</span><span class="v"><b>' + nf(st.cedNetta, 2) + ' €</b></span></div>' +
+    '<div><span class="k" style="color:#38bdf8">PLUSVALENZA NETTA € (a cambio spot)</span><span class="v"><b>' + (st.plN >= 0 ? "+" : "") + nf(st.plN, 2) + ' €</b></span></div>' +
+    '<div><span class="k" style="color:#c084fc">GIORNI A SCADENZA</span><span class="v"><b>' + st.ggLeft + ' gg</b> <span style="font-size:11px;color:#94a3b8">(' + st.ggEl + '/' + st.ggTot + ' trascorsi)</span></span></div>' +
+    '<div class="full"><span class="k" style="color:' + (st.tot >= 0 ? "#4ade80" : "#f87171") + '">GUADAGNO NETTO TOTALE DAILY € (al cambio spot)</span><span class="v"><b style="color:' + (st.tot >= 0 ? "#4ade80" : "#f87171") + '">' + (st.tot >= 0 ? "+" : "") + nf(st.tot, 2) + ' €' + dTxt + '</b> <span style="font-size:11px;color:#94a3b8">= ' + (st.pct >= 0 ? "+" : "") + nf(st.pct, 1) + '% · oggi ' + nf(st.valEUR, 2) + ' € a ' + nf(S, 4) + ' TRY</span></span></div>' +
+    '</div>';
+  $("btryOut").innerHTML = out;
+  btryChartDraw(b);
+}
+function btryChartDraw(b) {
+  if (!b.checks.length) { $("btryChart").innerHTML = ""; return; }
+  var W = 340, H = 150, L = 44, R = 8, T = 12, B = 22;
+  var ser = b.checks.map(function(c) { return { x: btryGG(b.checks[0].d, c.d), y: c.pct }; });
+  var gTot = Math.max(btryGG(b.checks[0].d, b.checks[b.checks.length - 1].d), 1);
+  var ymin = Infinity, ymax = -Infinity;
+  ser.forEach(function(p) { ymin = Math.min(ymin, p.y); ymax = Math.max(ymax, p.y); });
+  var pad = (ymax - ymin) * 0.15 || 5; ymin -= pad; ymax += pad;
+  var px = function(g) { return L + (g / gTot) * (W - L - R); };
+  var py = function(v) { return T + (1 - (v - ymin) / (ymax - ymin)) * (H - T - B); };
+  var g = '<line x1="' + L + '" y1="' + py(0) + '" x2="' + (W - R) + '" y2="' + py(0) + '" stroke="#475569" stroke-width="1"/>';
+  for (var i = 0; i <= 4; i++) {
+    var y = ymin + (ymax - ymin) * i / 4;
+    g += '<text x="' + (L - 4) + '" y="' + (py(y) + 4) + '" font-size="10" fill="#94a3b8" text-anchor="end">' + nf(y, 0) + '%</text>';
+  }
+  var d = ser.map(function(q, i) { return (i ? "L" : "M") + px(q.x).toFixed(1) + "," + py(q.y).toFixed(1); }).join(" ");
+  g += '<path d="' + d + '" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linejoin="round"/>';
+  ser.forEach(function(q) { g += '<circle cx="' + px(q.x).toFixed(1) + '" cy="' + py(q.y).toFixed(1) + '" r="3.5" fill="#38bdf8"/>'; });
+  $("btryChart").innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;background:#1e293b;border:1px solid #334155;border-radius:12px;margin-top:10px">' + g +
+    '<line x1="' + L + '" y1="' + (H - B) + '" x2="' + (W - R) + '" y2="' + (H - B) + '" stroke="#475569" stroke-width="1"/>' +
+    '<text x="' + (W - R) + '" y="' + (H - 6) + '" font-size="10" fill="#94a3b8" text-anchor="end">rilievi giornalieri (perf %)</text></svg>';
+}
+document.addEventListener("DOMContentLoaded", function() { btryApplyLock(); btryRender(); });
+
 
 </script>
 </body>
