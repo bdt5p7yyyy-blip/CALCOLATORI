@@ -90,6 +90,7 @@
   #oMode option.oytm { color: #4ade80; }
   .card.cardHero { background: rgba(74, 222, 128, 0.22); border-color: #4ade80; }
   #ivOut .card .v { white-space: normal; text-align: right; }
+  #fxOut .card .v { white-space: normal; text-align: right; overflow-wrap: anywhere; }
   #btryOut .v { white-space: normal; text-align: right; word-break: break-word; }
   #btryOut .k { white-space: normal; }
   #scOut .fr { border-color: #4ade80; background: rgba(74, 222, 128, 0.12); }
@@ -205,23 +206,23 @@
   <p>Opzioni &amp; Covered Warrant · Strategie Put · Obbligazioni</p>
 </header>
 <nav>
-  <button data-tab="istruzioni" class="active">Istruzioni</button>
+  <button class="active" data-tab="istruzioni">Istruzioni</button>
+  <button data-tab="fx">Bond FX</button>
+  <button data-tab="bond">Obbligazioni</button>
+  <button data-tab="duco">Confronto Bond</button>
+  <button data-tab="btry">Bond TRY</button>
   <button data-tab="payoff">Payoff</button>
   <button data-tab="strat">Strategia</button>
   <button data-tab="hedge">Hedge</button>
   <button data-tab="buco">Riacquisto</button>
   <button data-tab="fran">Franchigie</button>
-  <button data-tab="fx">Bond FX</button>
-  <button data-tab="bond">Obbligazioni</button>
   <button data-tab="conf">Confronto</button>
   <button data-tab="lad">Ladder</button>
   <button data-tab="cal">Calendario</button>
   <button data-tab="ivs">IV implicita</button>
   <button data-tab="costo">Costo annuo</button>
-  <button data-tab="duco">Confronto Bond</button>
   <button data-tab="scala">Scala</button>
   <button data-tab="track">Tracker</button>
-  <button data-tab="btry">Bond TRY</button>
 </nav>
 <main>
 
@@ -1240,11 +1241,31 @@ function calcFran() {
 /* ---------- 4. Bond FX (yield effettivo in EUR) ---------- */
 function setCcy(code, rif) {
   $("fxQuote").value = "eur";                 // sempre "1 EUR = X valuta"
-  $("fxSpot").value = String(rif);            // col punto: input type=number rifiuta la virgola
   $("fxCcyBox").style.display = "flex";
-  $("fxCcyLabel").innerHTML = code + " · 1 EUR = " + String(rif).replace(".", ",") + " " + code +
-    ' <span style="font-weight:400;font-size:11px">(rif. 30/10/26)</span>' +
-    '<a href="https://www.google.com/finance/quote/EUR-' + code + '" target="_blank">cambio live ↗</a>';
+  const link = '<a href="https://www.google.com/finance/quote/EUR-' + code + '" target="_blank">cambio live ↗</a>';
+  const lbl = (txt, sub) => { $("fxCcyLabel").innerHTML = code + " · 1 EUR = " + txt + " " + code + ' <span style="font-weight:400;font-size:11px">(' + sub + ")</span> " + link; };
+  const fill = (s, sub) => { $("fxSpot").value = s.toFixed(4); lbl(s.toFixed(4).replace(".", ","), sub); tryAutoFx(); };
+  lbl("…", "cambio live in aggiornamento");
+  fetch("https://api.frankfurter.app/latest?from=EUR&to=" + code)
+    .then(r => r.json())
+    .then(j => {
+      const s = j && j.rates && parseFloat(j.rates[code]);
+      if (!s || s <= 0) throw new Error("tasso mancante");
+      fill(s, "live BCE " + (j.date || "?"));
+    })
+    .catch(() => fetch("https://open.er-api.com/v6/latest/EUR")
+      .then(r => r.json())
+      .then(j => {
+        const s = j && j.rates && parseFloat(j.rates[code]);
+        if (!s || s <= 0) throw new Error("tasso mancante");
+        fill(s, "live " + (j.time_last_update_utc || "?"));
+      })
+      .catch(() => { $("fxSpot").value = String(rif); lbl(String(rif).replace(".", ","), "rif. 30/10/26 — live non disponibile"); }));
+}
+function tryAutoFx() {
+  const v = [num("fxNom"), num("fxCed"), num("fxPrezzo"), num("fxSpot"), num("fxSval")];
+  if (v.some(isNaN) || !$("fxScad").value) return;
+  calcFx();
 }
 
 function calcFx() {
