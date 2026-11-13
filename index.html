@@ -707,8 +707,8 @@
     <div><label for="bExit">Rimborso a scadenza (% nom.)</label><input id="bExit" type="number" inputmode="decimal" placeholder="100" /></div>
   </div>
   <div style="display:flex;gap:8px;margin-top:6px">
-    <button class="btn" style="flex:1;font-size:17px;padding:14px;font-weight:700" onclick="btrySave()">💾 Salva bond</button>
-    <button class="btn" id="btryDelBtn" style="font-size:17px;padding:14px;background:rgba(248,113,113,0.25);color:#f87171;font-weight:700" onclick="btryDel()">🗑 Cancella</button>
+    <button class="btn" style="flex:3 1 0;width:auto;font-size:17px;padding:16px;font-weight:800" onclick="btrySave()">💾 Salva bond</button>
+    <button class="btn" id="btryDelBtn" style="flex:2 1 0;width:auto;font-size:14px;padding:12px;background:rgba(248,113,113,0.25);color:#f87171;font-weight:700" onclick="btryDel()">🗑 Cancella</button>
   </div>
   <div class="results" id="btryOut" style="margin-top:14px"></div>
   <div id="btryChart"></div>
@@ -2030,14 +2030,16 @@ function btryRender() {
   out += '<div style="border-radius:12px;padding:12px 10px;text-align:center;background:' + heroBg + ';border:2px solid ' + heroCol + '">' +
     '<div style="font-size:13px;color:#e2e8f0;font-weight:700">RISULTATO NETTO % ANNUALIZZATO</div>' +
     '<div style="font-size:30px;font-weight:800;color:' + heroCol + ';line-height:1.15">' + annTxt + '</div>' +
-    '<div style="font-size:11px;color:#94a3b8">netto fiscale ' + nf(b.tax || 12.5, 1) + '% su ' + st.ggEl + ' gg · costo ' + nf(b.costoEUR, 2) + ' €</div>' +
+    '<div style="font-size:11px;color:#94a3b8">su ' + st.ggEl + ' gg</div>' +
     '</div>';
-  out += '<div class="grid" style="margin-top:10px">' +
-    '<div><span class="k" style="color:#fbbf24">CEDOLA NETTA € (maturata, al cambio spot)</span><span class="v"><b>' + nf(st.cedNetta, 2) + ' €</b></span></div>' +
-    '<div><span class="k" style="color:#38bdf8">PLUSVALENZA NETTA € (a cambio spot)</span><span class="v"><b>' + (st.plN >= 0 ? "+" : "") + nf(st.plN, 2) + ' €</b></span></div>' +
-    '<div><span class="k" style="color:#c084fc">GIORNI A SCADENZA</span><span class="v"><b>' + st.ggLeft + ' gg</b> <span style="font-size:11px;color:#94a3b8">(' + st.ggEl + '/' + st.ggTot + ' trascorsi)</span></span></div>' +
-    '<div class="full"><span class="k" style="color:' + (st.tot >= 0 ? "#4ade80" : "#f87171") + '">GUADAGNO NETTO TOTALE DAILY € (al cambio spot)</span><span class="v"><b style="color:' + (st.tot >= 0 ? "#4ade80" : "#f87171") + '">' + (st.tot >= 0 ? "+" : "") + nf(st.tot, 2) + ' €' + dTxt + '</b> <span style="font-size:11px;color:#94a3b8">= ' + (st.pct >= 0 ? "+" : "") + nf(st.pct, 1) + '% · oggi ' + nf(st.valEUR, 2) + ' € a ' + nf(S, 4) + ' TRY</span></span></div>' +
-    '</div>';
+  var card = function(label, col, valHtml) {
+    return '<div class="card" style="border-left:4px solid ' + col + '"><span class="k" style="color:' + col + ';font-weight:700">' + label + '</span><span class="v" style="font-size:26px;color:' + col + '">' + valHtml + '</span></div>';
+  };
+  out += card("CEDOLA NETTA SPOT", "#fbbf24", nf(st.cedNetta, 2) + " €");
+  out += card("PLUSVAL. NETTA SPOT", "#38bdf8", (st.plN >= 0 ? "+" : "") + nf(st.plN, 2) + " €");
+  out += card("GIORNI A SCADENZA", "#c084fc", String(st.ggLeft));
+  out += card("NETTO DAILY SPOT", st.tot >= 0 ? "#4ade80" : "#f87171",
+    (st.tot >= 0 ? "+" : "") + nf(st.tot, 2) + ' € <span style="font-size:13px;font-weight:400">(' + (st.pct >= 0 ? "+" : "") + nf(st.pct, 1) + "%" + dTxt + ')</span>');
   $("btryOut").innerHTML = out;
   btryChartDraw(b);
 }
@@ -2069,3 +2071,5 @@ document.addEventListener("DOMContentLoaded", function() { btryApplyLock(); btry
 </script>
 </body>
 </html>
+
+
