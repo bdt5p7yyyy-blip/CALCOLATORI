@@ -43,18 +43,18 @@
   nav button:nth-child(3) { --c: #fbbf24; }  /* Strategia — ambra */
   nav button:nth-child(4) { --c: #4ade80; }  /* Hedge — verde */
   nav button:nth-child(5) { --c: #a78bfa; }  /* Riacquisto — viola */
-  nav button:nth-child(6) { --c: #fb923c; }  /* Franchigie — arancio */
-  nav button:nth-child(7) { --c: #22d3ee; }  /* Bond FX — ciano */
-  nav button:nth-child(8) { --c: #e2e8f0; }  /* Obbligazioni — perla */
-  nav button:nth-child(9) { --c: #facc15; }  /* Confronto — giallo */
-  nav button:nth-child(10) { --c: #a3e635; }  /* Ladder — lime */
-  nav button:nth-child(11) { --c: #e879f9; }  /* Calendario — fucsia */
-  nav button:nth-child(12) { --c: #38bdf8; }  /* IV implicita — cielo */
-  nav button:nth-child(13) { --c: #fb7185; }  /* Costo annuo — corallo */
-  nav button:nth-child(14) { --c: #14b8a6; }  /* Confronto Bond — teal */
-  nav button:nth-child(15) { --c: #34d399; }  /* Scala — smeraldo */
-  nav button:nth-child(16) { --c: #f59e0b; }  /* Tracker — ambra */
-  nav button:nth-child(17) { --c: #c084fc; }  /* Bond TRY — viola */
+  nav button:nth-child(6) { --c: #22d3ee; }  /* Bond FX — ciano */
+  nav button:nth-child(7) { --c: #e2e8f0; }  /* Obbligazioni — perla */
+  nav button:nth-child(8) { --c: #facc15; }  /* Confronto — giallo */
+  nav button:nth-child(9) { --c: #a3e635; }  /* Ladder — lime */
+  nav button:nth-child(10) { --c: #e879f9; }  /* Calendario — fucsia */
+  nav button:nth-child(11) { --c: #38bdf8; }  /* IV implicita — cielo */
+  nav button:nth-child(12) { --c: #fb7185; }  /* Costo annuo — corallo */
+  nav button:nth-child(13) { --c: #14b8a6; }  /* Confronto Bond — teal */
+  nav button:nth-child(14) { --c: #34d399; }  /* Scala — smeraldo */
+  nav button:nth-child(15) { --c: #f59e0b; }  /* Tracker — ambra */
+  nav button:nth-child(16) { --c: #c084fc; }  /* Bond TRY — viola */
+  nav button:nth-child(17) { --c: #fda4af; }  /* Scala Sigma — rosa chiaro */
   main { max-width: 680px; margin: 0 auto; padding: 14px; }
   section { display: none; }
   section.active { display: block; }
@@ -215,7 +215,6 @@
   <button data-tab="strat">Strategia</button>
   <button data-tab="hedge">Hedge</button>
   <button data-tab="buco">Riacquisto</button>
-  <button data-tab="fran">Franchigie</button>
   <button data-tab="conf">Confronto</button>
   <button data-tab="lad">Ladder</button>
   <button data-tab="cal">Calendario</button>
@@ -223,6 +222,7 @@
   <button data-tab="costo">Costo annuo</button>
   <button data-tab="scala">Scala</button>
   <button data-tab="track">Tracker</button>
+  <button data-tab="sigs">Scala Σ</button>
 </nav>
 <main>
 
@@ -373,31 +373,6 @@
 </section>
 
 <!-- ================= FRANCHIGIE ================= -->
-<section id="fran">
-  <h2>Franchigie −15% / −20% / −30% — costo totale del piano</h2>
-  <div class="grid">
-    <div><label for="fCap">Blocco da coprire (€)</label><input id="fCap" type="number" inputmode="decimal" placeholder="es. 10000" /></div>
-    <div><label for="fCop">Capitale per copertura franchigia (€) — opzionale</label><input id="fCop" type="number" inputmode="decimal" placeholder="es. 2000" /></div>
-  </div>
-  <fieldset class="leg stim" style="margin-top:10px">
-    <legend>Stima premi dal listino (opzionale) — put quotata per 1 azione (CW: prezzo × P)</legend>
-    <div class="grid">
-      <div><label for="fS">Prezzo attuale S</label><input id="fS" type="number" inputmode="decimal" placeholder="es. 100" /></div>
-      <div><label for="fK">Strike K della put</label><input id="fK" type="number" inputmode="decimal" placeholder="es. 100" /></div>
-      <div><label for="fGG">Giorni a scadenza</label><input id="fGG" type="number" inputmode="numeric" placeholder="es. 182" /></div>
-      <div><label for="fPx">Prezzo quotato della put</label><input id="fPx" type="number" inputmode="decimal" placeholder="es. 8.5" /></div>
-    </div>
-  </fieldset>
-  <div class="grid" style="margin-top:10px">
-    <div><label for="fMesi">Mesi a scadenza delle put</label><input id="fMesi" type="number" inputmode="decimal" value="12" /></div>
-    <div><label for="fP15">Premio put −15% a scadenza (%)</label><input id="fP15" type="number" inputmode="decimal" value="1.62" /></div>
-    <div><label for="fP20">Premio put −20% a scadenza (%)</label><input id="fP20" type="number" inputmode="decimal" value="0.86" /></div>
-    <div><label for="fP30">Premio put −30% a scadenza (%)</label><input id="fP30" type="number" inputmode="decimal" value="0.17" /></div>
-  </div>
-  <button class="btn" onclick="calcFran()">Calcola franchigie</button>
-  <div class="results" id="fOut"></div>
-</section>
-
 <section id="fx">
   <h2>Bond in valuta — Yield effettivo in € (USD · MXN · TRY · GBP)</h2>
   <div class="links">
@@ -662,6 +637,23 @@
   </div>
 </section>
 
+</section>
+
+<!-- ================= SCALA SIGMA ================= -->
+<section id="sigs">
+  <h2>Scala Σ — media tra ladder fissa (−10…−30 a passi di 5) e strike sigma</h2>
+  <div class="grid">
+    <div><label for="sgS">Sottostante S (prezzo attuale)</label><input id="sgS" type="number" inputmode="decimal" placeholder="es. 24000" /></div>
+    <div><label for="sgIv">Volatilità σ (% annua — IV letta dai CW)</label><input id="sgIv" type="number" inputmode="decimal" placeholder="es. 22" /></div>
+    <div><label for="sgMesi">Mesi a scadenza</label><input id="sgMesi" type="number" inputmode="decimal" value="12" /></div>
+  </div>
+  <button class="btn" onclick="calcSigs()">Costruisci scala σ + media</button>
+  <div class="results" id="sgOut"></div>
+  <div class="note">
+    Strike sigma: <b>K = S·e^(−n·σ·√T)</b> con <b>floor −30%</b> (sotto non si trovano CW su SeDeX e non serve).
+    Colonna <b>Media</b> = (fisso + sigma)/2 per ogni gradino. Premi BS con r = 3%: i CW reali quotano un po' sopra per lo skew della coda.
+    Regola del cricchetto invariata: se S sale oltre +8% dal livello di strike-setting, compra subito la generazione nuova.
+  </div>
 </section>
 
 <!-- ================= TRACKER PUT DIFENSIVE ================= -->
@@ -1168,75 +1160,6 @@ function calcBuco() {
     card("Extra del 1/(1−n) sul riacquisto", fmt(extra), "pos") +
     card("Recupero richiesto senza cash", nf(f / (1 - f) * 100) + " %", "neutral");
 }
-
-/* ---------- 3d. Franchigie: costo totale del piano ---------- */
-function ncdf(x) {
-  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
-  const sgn = x < 0 ? -1 : 1; x = Math.abs(x) / Math.SQRT2;
-  const t = 1 / (1 + p * x);
-  const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
-  return 0.5 * (1 + sgn * y);
-}
-function bsPut(S, K, T, iv, r) {
-  const d1 = (Math.log(S / K) + (r + 0.5 * iv * iv) * T) / (iv * Math.sqrt(T));
-  const d2 = d1 - iv * Math.sqrt(T);
-  return K * Math.exp(-r * T) * ncdf(-d2) - S * ncdf(-d1);
-}
-function calcFran() {
-  const cap = num("fCap");
-  const cop = num("fCop");
-  const mesiRaw = num("fMesi");
-  const mesi = (!isNaN(mesiRaw) && mesiRaw > 0) ? mesiRaw : 12;
-  // Stima IV dal listino (opzionale): riempie le caselle premi da sole alla scadenza scelta
-  const S = num("fS"), Kq = num("fK"), gg = num("fGG"), px = num("fPx");
-  let ivCard = "";
-  if ([S, Kq, gg, px].every(v => !isNaN(v) && v > 0)) {
-    const T = gg / 365, r = 0.03, T2 = mesi / 12;
-    let lo = 0.01, hi = 3;
-    for (let i = 0; i < 60; i++) {
-      const mid = (lo + hi) / 2;
-      if (bsPut(S, Kq, T, mid, r) < px) lo = mid; else hi = mid;
-    }
-    const iv = (lo + hi) / 2;
-    const q15 = bsPut(S, S * 0.85, T2, iv, r) / S * 100;
-    const q20 = bsPut(S, S * 0.80, T2, iv, r) / S * 100;
-    const q30 = bsPut(S, S * 0.70, T2, iv, r) / S * 100;
-    $("fP15").value = q15.toFixed(2);
-    $("fP20").value = q20.toFixed(2);
-    $("fP30").value = q30.toFixed(2);
-    ivCard = card("IV stimata dal listino", nf(iv * 100, 1) + " %", "neutral") +
-      card("Premi a " + nf(mesi, 0) + " mesi calcolati e inseriti", nf(q15, 2) + " / " + nf(q20, 2) + " / " + nf(q30, 2) + " %" +
-        (mesi !== 12 ? ' <span style="font-weight:400;font-size:11px;opacity:.7">(rinnovo annuo ≈ ×' + nf(12 / mesi, 2) + ')</span>' : ""), "neutral");
-  }
-  const p15 = num("fP15"), p20 = num("fP20"), p30 = num("fP30");
-  if (isNaN(cap) || cap <= 0 || isNaN(p15) || p15 < 0 || isNaN(p20) || p20 < 0 || isNaN(p30) || p30 < 0)
-    return void ($("fOut").innerHTML = err("Compila il blocco (> 0) e i premi (≥ 0) — oppure i 4 dati della put quotata per farli stimare."));
-  const rows = [[15, p15], [20, p20], [30, p30]];
-  let html = ivCard;
-  rows.forEach(function(r) {
-    const fr = r[0], p = r[1];
-    const premio = cap * p / 100;                 // premio alla scadenza scelta
-    const annuo = premio * 12 / mesi;             // costo annuo equivalente se si rinnova
-    const immob = cap * fr / 100;                 // capitale da immobilizzare = franchigia × blocco
-    const totale = premio + immob;
-    const floor = fr + p;
-    let copTxt = "";
-    if (!isNaN(cop) && cop > 0) {
-      copTxt = cop >= immob
-        ? ' · il tuo capitale di ' + nf(cop) + ' € <b style="color:#4ade80">copre</b> (avanzo ' + nf(cop - immob) + ' €)'
-        : ' · il tuo capitale di ' + nf(cop) + ' € <b style="color:#f87171">non basta</b> (mancano ' + nf(immob - cop) + ' €)';
-    }
-    const premTxt = mesi === 12
-      ? 'Premio put annuo: <b>' + nf(premio) + ' €</b>'
-      : 'Premio put (' + nf(mesi, 0) + ' mesi): <b>' + nf(premio) + ' €</b> · rinnovo annuo ≈ <b>' + nf(annuo) + ' €</b>';
-    html += '<div class="fblock"><span class="t">Franchigia −' + fr + '%</span>' +
-      '<div class="r">💵 Da immobilizzare per coprire la perdita con quote nuove: <b>' + nf(immob) + ' €</b>' + copTxt + '</div>' +
-      '<div class="r">🎟️ ' + premTxt + ' · Costo totale: <b>' + nf(totale) + ' €</b> (' + nf(totale / cap * 100, 1) + '% del blocco)</div>' +
-      '<div class="r">🛡️ Floor netto: <b class="neg">−' + nf(floor, 1) + '%</b></div></div>';
-  });
-  $("fOut").innerHTML = html;
-}
-
 
 /* ---------- 4. Bond FX (yield effettivo in EUR) ---------- */
 function setCcy(code, rif) {
@@ -1800,6 +1723,19 @@ function calcCbond() {
 oModeCol();
 
 
+function ncdf(x) {
+  const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+  const sgn = x < 0 ? -1 : 1; x = Math.abs(x) / Math.SQRT2;
+  const t = 1 / (1 + p * x);
+  const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+  return 0.5 * (1 + sgn * y);
+}
+function bsPut(S, K, T, iv, r) {
+  const d1 = (Math.log(S / K) + (r + 0.5 * iv * iv) * T) / (iv * Math.sqrt(T));
+  const d2 = d1 - iv * Math.sqrt(T);
+  return K * Math.exp(-r * T) * ncdf(-d2) - S * ncdf(-d1);
+}
+
 function calcScala() {
   const S = num("scS");
   if (isNaN(S) || S <= 0)
@@ -1817,6 +1753,33 @@ function calcScala() {
   out += "</div>";
   $("scOut").innerHTML = out;
 }
+
+/* ---------- 15b. Scala Sigma: media tra ladder fissa e strike sigma ---------- */
+function calcSigs() {
+  const S = num("sgS"), iv = num("sgIv"), mesi = num("sgMesi");
+  if ([S, iv, mesi].some(isNaN) || S <= 0 || iv <= 0 || mesi <= 0)
+    return void ($("sgOut").innerHTML = err("Compila S, σ (%) e mesi a scadenza (tutti > 0)."));
+  const T = mesi / 12, r = 0.03, sg = iv / 100, sqT = sg * Math.sqrt(T);
+  const fissi = [-10, -15, -20, -25, -30];
+  const d = S >= 200 ? 0 : S >= 20 ? 1 : 2;
+  let out = '<table class="scen"><tr><th>Gradino</th><th>Strike fisso</th><th>Strike σ</th><th>Media</th><th>Premio % (fisso / σ / media)</th></tr>';
+  let totF = 0, totS = 0, totM = 0;
+  fissi.forEach(function(f, i) {
+    const n = i + 1;
+    const kF = S * (1 + f / 100);
+    const kS = Math.max(S * Math.exp(-n * sqT), 0.70 * S);   // floor -30%
+    const kM = (kF + kS) / 2;
+    const pF = bsPut(S, kF, T, sg, r) / S * 100;
+    const pS = bsPut(S, kS, T, sg, r) / S * 100;
+    const pM = bsPut(S, kM, T, sg, r) / S * 100;
+    totF += pF; totS += pS; totM += pM;
+    out += "<tr><td>−" + n + "σ (" + f + "%)</td><td>" + nf(kF, d) + "</td><td>" + nf(kS, d) + "</td><td><b>" + nf(kM, d) + "</b></td><td>" + nf(pF, 2) + " / " + nf(pS, 2) + " / <b>" + nf(pM, 2) + "</b></td></tr>";
+  });
+  out += "</table>";
+  out += card("Somma premi (% su S)", nf(totF, 2) + "% fisso · " + nf(totS, 2) + "% sigma · <b>" + nf(totM, 2) + "% media</b>", "neutral");
+  $("sgOut").innerHTML = out;
+}
+
 
 /* ---------- 16. Tracker put difensive ---------- */
 var TK_MEM = null;
@@ -2092,5 +2055,7 @@ document.addEventListener("DOMContentLoaded", function() { btryApplyLock(); btry
 </script>
 </body>
 </html>
+
+
 
 
