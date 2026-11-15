@@ -141,6 +141,9 @@
     padding: 8px 6px; text-align: right; border-bottom: 1px solid #334155; white-space: nowrap;
   }
   table.scen th { background: #0f172a; font-size: 11px; color: #94a3b8; }
+  #sigs .results { overflow-x: auto; }
+  #sigs table.scen { font-size: 12px; min-width: 100%; }
+  #sigs table.scen th, #sigs table.scen td { padding: 7px 6px; white-space: normal; overflow-wrap: anywhere; }
   table.scen tr.beRow td {
     background: rgba(96, 165, 250, 0.16);
     border-top: 2px solid #60a5fa !important; border-bottom: 2px solid #60a5fa !important;
@@ -649,10 +652,8 @@
   </div>
   <button class="btn" onclick="calcSigs()">Costruisci scala σ + media</button>
   <div class="results" id="sgOut"></div>
-  <div class="note">
-    Strike sigma: <b>K = S·e^(−n·σ·√T)</b> con <b>floor −30%</b> (sotto non si trovano CW su SeDeX e non serve).
-    Colonna <b>Media</b> = (fisso + sigma)/2 per ogni gradino. Premi BS con r = 3%: i CW reali quotano un po' sopra per lo skew della coda.
-    Regola del cricchetto invariata: se S sale oltre +8% dal livello di strike-setting, compra subito la generazione nuova.
+  <div class="note" style="color:#f87171;font-size:18px;font-weight:800;line-height:1.5;border-left-color:#f87171">
+    ⚠️ REGOLA DEL CRICCHETTO: se S sale oltre <b>+8%</b> dal livello di strike-setting, compra subito la generazione nuova.
   </div>
 </section>
 
@@ -1762,7 +1763,7 @@ function calcSigs() {
   const T = mesi / 12, r = 0.03, sg = iv / 100, sqT = sg * Math.sqrt(T);
   const fissi = [-10, -15, -20, -25, -30];
   const d = S >= 200 ? 0 : S >= 20 ? 1 : 2;
-  let out = '<table class="scen"><tr><th>Gradino</th><th>Strike fisso</th><th>Strike σ</th><th>Media</th><th>Premio % (fisso / σ / media)</th></tr>';
+  let out = '<table class="scen"><tr><th>Gradino</th><th>Strike fisso</th><th>Strike σ</th><th>Media</th><th>Premio %<br>f · σ · m</th></tr>';
   let totF = 0, totS = 0, totM = 0;
   fissi.forEach(function(f, i) {
     const n = i + 1;
@@ -1773,7 +1774,7 @@ function calcSigs() {
     const pS = bsPut(S, kS, T, sg, r) / S * 100;
     const pM = bsPut(S, kM, T, sg, r) / S * 100;
     totF += pF; totS += pS; totM += pM;
-    out += "<tr><td>−" + n + "σ (" + f + "%)</td><td>" + nf(kF, d) + "</td><td>" + nf(kS, d) + "</td><td><b>" + nf(kM, d) + "</b></td><td>" + nf(pF, 2) + " / " + nf(pS, 2) + " / <b>" + nf(pM, 2) + "</b></td></tr>";
+    out += "<tr><td>−" + n + "σ (" + f + "%)</td><td>" + nf(kF, d) + "</td><td>" + nf(kS, d) + "</td><td><b>" + nf(kM, d) + "</b></td><td>" + "f " + nf(pF, 2) + "<br>σ " + nf(pS, 2) + "<br><b>m " + nf(pM, 2) + "</b></td></tr>";
   });
   out += "</table>";
   out += card("Somma premi (% su S)", nf(totF, 2) + "% fisso · " + nf(totS, 2) + "% sigma · <b>" + nf(totM, 2) + "% media</b>", "neutral");
@@ -2055,6 +2056,9 @@ document.addEventListener("DOMContentLoaded", function() { btryApplyLock(); btry
 </script>
 </body>
 </html>
+
+
+
 
 
 
