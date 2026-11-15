@@ -141,9 +141,11 @@
     padding: 8px 6px; text-align: right; border-bottom: 1px solid #334155; white-space: nowrap;
   }
   table.scen th { background: #0f172a; font-size: 11px; color: #94a3b8; }
-  #sigs .results { overflow-x: auto; }
-  #sigs table.scen { font-size: 12px; min-width: 100%; }
-  #sigs table.scen th, #sigs table.scen td { padding: 7px 6px; white-space: normal; overflow-wrap: anywhere; }
+  #sigs .results { overflow-x: auto; margin-left: 0; padding-left: 0; }
+  #sigs .results > * { min-width: 0; }
+  #sigs table.scen { font-size: 14px; width: 100%; table-layout: fixed; }
+  #sigs table.scen th { font-size: 12px; }
+  #sigs table.scen th, #sigs table.scen td { padding: 8px 4px 8px 0; text-align: left; white-space: normal; overflow-wrap: anywhere; }
   table.scen tr.beRow td {
     background: rgba(96, 165, 250, 0.16);
     border-top: 2px solid #60a5fa !important; border-bottom: 2px solid #60a5fa !important;
@@ -1763,7 +1765,7 @@ function calcSigs() {
   const T = mesi / 12, r = 0.03, sg = iv / 100, sqT = sg * Math.sqrt(T);
   const fissi = [-10, -15, -20, -25, -30];
   const d = S >= 200 ? 0 : S >= 20 ? 1 : 2;
-  let out = '<table class="scen"><tr><th>Gradino</th><th>Strike fisso</th><th>Strike σ</th><th>Media</th><th>Premio %<br>f · σ · m</th></tr>';
+  let out = '<table class="scen"><tr><th>Gradino</th><th>Fisso</th><th>σ</th><th>Media</th><th>Premio %<br>f · σ · m</th></tr>';
   let totF = 0, totS = 0, totM = 0;
   fissi.forEach(function(f, i) {
     const n = i + 1;
@@ -2056,6 +2058,8 @@ document.addEventListener("DOMContentLoaded", function() { btryApplyLock(); btry
 </script>
 </body>
 </html>
+
+
 
 
 
