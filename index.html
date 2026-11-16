@@ -146,6 +146,9 @@
   #sigs table.scen { font-size: 14px; width: 100%; table-layout: fixed; }
   #sigs table.scen th { font-size: 12px; }
   #sigs table.scen th, #sigs table.scen td { padding: 8px 4px 8px 0; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+  #sigs .card { flex-direction: column; align-items: flex-start; gap: 4px; }
+  #sigs .card .v { white-space: normal; overflow-wrap: anywhere; text-align: left; font-size: 15px; }
+  #sigs td b, #sigs .card .v b { color: #34d399; }  /* risultati MEDIA in verde */
   table.scen tr.beRow td {
     background: rgba(96, 165, 250, 0.16);
     border-top: 2px solid #60a5fa !important; border-bottom: 2px solid #60a5fa !important;
@@ -649,7 +652,9 @@
   <h2>Scala Σ — media tra ladder fissa (−10…−30 a passi di 5) e strike sigma</h2>
   <div class="grid">
     <div><label for="sgS">Sottostante S (prezzo attuale)</label><input id="sgS" type="number" inputmode="decimal" placeholder="es. 24000" /></div>
-    <div><label for="sgIv">Volatilità σ (% annua — IV letta dai CW)</label><input id="sgIv" type="number" inputmode="decimal" placeholder="es. 22" /></div>
+    <div><label for="sgIv">IV implicita % (da quotazione CW)</label><input id="sgIv" type="number" inputmode="decimal" placeholder="es. 22" /></div>
+    <div><label for="sgHv">Volatilità realizzata HV % (es. 20 gg)</label><input id="sgHv" type="number" inputmode="decimal" placeholder="es. 34" /></div>
+    <div><label for="sgW">Peso IV nel blend (0–100)</label><input id="sgW" type="number" inputmode="numeric" value="50" /></div>
     <div><label for="sgMesi">Mesi a scadenza</label><input id="sgMesi" type="number" inputmode="decimal" value="12" /></div>
   </div>
   <button class="btn" onclick="calcSigs()">Costruisci scala σ + media</button>
@@ -1759,13 +1764,18 @@ function calcScala() {
 
 /* ---------- 15b. Scala Sigma: media tra ladder fissa e strike sigma ---------- */
 function calcSigs() {
-  const S = num("sgS"), iv = num("sgIv"), mesi = num("sgMesi");
+  const S = num("sgS"), iv = num("sgIv"), hv = num("sgHv"), mesi = num("sgMesi"), w = num("sgW");
   if ([S, iv, mesi].some(isNaN) || S <= 0 || iv <= 0 || mesi <= 0)
-    return void ($("sgOut").innerHTML = err("Compila S, σ (%) e mesi a scadenza (tutti > 0)."));
-  const T = mesi / 12, r = 0.03, sg = iv / 100, sqT = sg * Math.sqrt(T);
+    return void ($("sgOut").innerHTML = err("Compila S, IV (%) e mesi a scadenza (tutti > 0)."));
+  const hw = (isNaN(hv) || hv <= 0) ? iv : hv;          // se manca l'HV usa l'IV
+  const ww = (isNaN(w) ? 50 : w) / 100;                 // peso IV di default 50%
+  const sg = (ww * iv + (1 - ww) * hw) / 100;           // sigma blend IV <-> HV
+  const T = mesi / 12, r = 0.03, sqT = sg * Math.sqrt(T);
   const fissi = [-10, -15, -20, -25, -30];
   const d = S >= 200 ? 0 : S >= 20 ? 1 : 2;
-  let out = '<table class="scen"><tr><th>Gradino</th><th>Fisso</th><th>σ</th><th>Media</th><th>Premio %<br>f · σ · m</th></tr>';
+  const vega = function(k) { const e = 0.01; return (bsPut(S, k, T, sg + e, r) - bsPut(S, k, T, sg, r)) / e / S * 100; };
+  let out = card("σ blend", nf(sg * 100, 1) + "%   (IV " + nf(iv, 1) + "% · HV " + nf(hw, 1) + "% · peso IV " + nf(ww * 100, 0) + "%)", "neutral");
+  out += '<table class="scen"><tr><th>Gradino</th><th>Fisso</th><th>σ</th><th>Media</th><th>Premio %<br>f · σ · m</th><th>Vega m</th></tr>';
   let totF = 0, totS = 0, totM = 0;
   fissi.forEach(function(f, i) {
     const n = i + 1;
@@ -1776,7 +1786,7 @@ function calcSigs() {
     const pS = bsPut(S, kS, T, sg, r) / S * 100;
     const pM = bsPut(S, kM, T, sg, r) / S * 100;
     totF += pF; totS += pS; totM += pM;
-    out += "<tr><td>−" + n + "σ (" + f + "%)</td><td>" + nf(kF, d) + "</td><td>" + nf(kS, d) + "</td><td><b>" + nf(kM, d) + "</b></td><td>" + "f " + nf(pF, 2) + "<br>σ " + nf(pS, 2) + "<br><b>m " + nf(pM, 2) + "</b></td></tr>";
+    out += "<tr><td>−" + n + "σ (" + f + "%)</td><td>" + nf(kF, d) + "</td><td>" + nf(kS, d) + "</td><td><b>" + nf(kM, d) + "</b></td><td>" + "f " + nf(pF, 2) + "<br>σ " + nf(pS, 2) + "<br><b>m " + nf(pM, 2) + "</b></td><td>" + nf(vega(kM), 2) + "</td></tr>";
   });
   out += "</table>";
   out += card("Somma premi (% su S)", nf(totF, 2) + "% fisso · " + nf(totS, 2) + "% sigma · <b>" + nf(totM, 2) + "% media</b>", "neutral");
@@ -2058,6 +2068,9 @@ document.addEventListener("DOMContentLoaded", function() { btryApplyLock(); btry
 </script>
 </body>
 </html>
+
+
+
 
 
 
