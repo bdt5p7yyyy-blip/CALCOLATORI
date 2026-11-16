@@ -143,12 +143,18 @@
   table.scen th { background: #0f172a; font-size: 11px; color: #94a3b8; }
   #sigs .results { overflow-x: auto; margin-left: 0; padding-left: 0; }
   #sigs .results > * { min-width: 0; }
-  #sigs table.scen { font-size: 14px; width: 100%; table-layout: fixed; }
+  #sigs table.scen { font-size: 13px; width: 100%; table-layout: fixed; }
   #sigs table.scen th { font-size: 12px; }
   #sigs table.scen th, #sigs table.scen td { padding: 8px 4px 8px 0; text-align: left; white-space: normal; overflow-wrap: anywhere; }
   #sigs .card { flex-direction: column; align-items: flex-start; gap: 4px; }
   #sigs .card .v { white-space: normal; overflow-wrap: anywhere; text-align: left; font-size: 15px; }
   #sigs td b, #sigs .card .v b { color: #34d399; }  /* risultati MEDIA in verde */
+  #hedge .results, #hedge #hTable { overflow-x: auto; margin-left: 0; padding-left: 0; }
+  #hedge .results > * { min-width: 0; }
+  #hedge .card { flex-direction: column; align-items: flex-start; gap: 4px; }
+  #hedge .card .v { white-space: normal; overflow-wrap: anywhere; text-align: left; font-size: 16px; }
+  #hedge table.scen { font-size: 12px; width: 100%; table-layout: fixed; }
+  #hedge table.scen th, #hedge table.scen td { padding: 6px 4px 6px 0; text-align: left; white-space: normal; overflow-wrap: anywhere; }
   table.scen tr.beRow td {
     background: rgba(96, 165, 250, 0.16);
     border-top: 2px solid #60a5fa !important; border-bottom: 2px solid #60a5fa !important;
@@ -1763,6 +1769,20 @@ function calcScala() {
 }
 
 /* ---------- 15b. Scala Sigma: media tra ladder fissa e strike sigma ---------- */
+const LISTINO_NDX = [ // CW put NDX SeDeX, Directa SIM 16/11/2026 (S=27600, parita 0.001); ask null = sospeso
+  { k: 26200, em: "Vontobel", sc: "2027-01-15", ask: 0.653 },
+  { k: 26000, em: "SGE",     sc: "2027-03-19", ask: 0.925 },
+  { k: 25500, em: "SGE",     sc: "2027-06-17", ask: 1.108 },
+  { k: 25400, em: "Vontobel", sc: "2027-01-15", ask: 0.484 },
+  { k: 24800, em: "Vontobel", sc: "2027-01-15", ask: 0.385 },
+  { k: 24600, em: "Vontobel", sc: "2027-01-15", ask: 0.365 },
+  { k: 24000, em: "SGE",     sc: "2027-12-17", ask: 1.185 },
+  { k: 23500, em: "SGE",     sc: "2027-12-17", ask: 1.091 },
+  { k: 23200, em: "Vontobel", sc: "2027-01-15", ask: null },
+  { k: 21500, em: "Vontobel", sc: "2027-03-19", ask: 0.2585 },
+  { k: 21000, em: "Vontobel", sc: "2027-09-19", ask: 0.589 },
+  { k: 19000, em: "Vontobel", sc: "2027-06-17", ask: 0.2855 }
+];
 function calcSigs() {
   const S = num("sgS"), iv = num("sgIv"), hv = num("sgHv"), mesi = num("sgMesi"), w = num("sgW");
   if ([S, iv, mesi].some(isNaN) || S <= 0 || iv <= 0 || mesi <= 0)
@@ -1775,21 +1795,37 @@ function calcSigs() {
   const d = S >= 200 ? 0 : S >= 20 ? 1 : 2;
   const vega = function(k) { const e = 0.01; return (bsPut(S, k, T, sg + e, r) - bsPut(S, k, T, sg, r)) / e / S * 100; };
   let out = card("σ blend", nf(sg * 100, 1) + "%   (IV " + nf(iv, 1) + "% · HV " + nf(hw, 1) + "% · peso IV " + nf(ww * 100, 0) + "%)", "neutral");
-  out += '<table class="scen"><tr><th>Gradino</th><th>Fisso</th><th>σ</th><th>Media</th><th>Premio %<br>f · σ · m</th><th>Vega m</th></tr>';
+  out += '<table class="scen"><tr><th>Gradino</th><th>Fisso</th><th>σ</th><th>Media</th><th>Premio %<br>f · σ · m</th><th>Vega m</th><th>CW reale 16/11<br>K · prem%</th></tr>';
   let totF = 0, totS = 0, totM = 0;
+  const ksM = [];
   fissi.forEach(function(f, i) {
     const n = i + 1;
     const kF = S * (1 + f / 100);
     const kS = Math.max(S * Math.exp(-n * sqT), 0.70 * S);   // floor -30%
     const kM = (kF + kS) / 2;
+    ksM.push(kM);
     const pF = bsPut(S, kF, T, sg, r) / S * 100;
     const pS = bsPut(S, kS, T, sg, r) / S * 100;
     const pM = bsPut(S, kM, T, sg, r) / S * 100;
     totF += pF; totS += pS; totM += pM;
-    out += "<tr><td>−" + n + "σ (" + f + "%)</td><td>" + nf(kF, d) + "</td><td>" + nf(kS, d) + "</td><td><b>" + nf(kM, d) + "</b></td><td>" + "f " + nf(pF, 2) + "<br>σ " + nf(pS, 2) + "<br><b>m " + nf(pM, 2) + "</b></td><td>" + nf(vega(kM), 2) + "</td></tr>";
+    let best = null, bd = 1e18;
+    LISTINO_NDX.forEach(function(cw) {
+      if (cw.ask == null) return;
+      const dd = Math.abs(cw.k - kM);
+      if (dd < bd) { bd = dd; best = cw; }
+    });
+    const cwTxt = best ? nf(best.k, d) + " · " + nf(best.ask / (0.001 * S) * 100, 2) + "%" : "—";
+    out += "<tr><td>−" + n + "σ (" + f + "%)</td><td>" + nf(kF, d) + "</td><td>" + nf(kS, d) + "</td><td><b>" + nf(kM, d) + "</b></td><td>" + "f " + nf(pF, 2) + "<br>σ " + nf(pS, 2) + "<br><b>m " + nf(pM, 2) + "</b></td><td>" + nf(vega(kM), 2) + "</td><td>" + cwTxt + "</td></tr>";
   });
   out += "</table>";
   out += card("Somma premi (% su S)", nf(totF, 2) + "% fisso · " + nf(totS, 2) + "% sigma · <b>" + nf(totM, 2) + "% media</b>", "neutral");
+  let scen = "";
+  [[-15], [-25], [-36.8], [-50]].forEach(function(x) {
+    const st = x[0] / 100;
+    const pay = ksM.reduce(function(a, k) { return a + Math.max(k - S * (1 + st), 0); }, 0) / S * 100;
+    scen += (scen ? " · " : "") + x[0] + "%: <b>" + nf(pay, 1) + "%</b>";
+  });
+  out += card("Payout scala MEDIA negli scenari (su S)", scen, "neutral");
   $("sgOut").innerHTML = out;
 }
 
@@ -2068,6 +2104,8 @@ document.addEventListener("DOMContentLoaded", function() { btryApplyLock(); btry
 </script>
 </body>
 </html>
+
+
 
 
 
