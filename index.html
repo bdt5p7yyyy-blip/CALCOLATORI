@@ -1783,6 +1783,25 @@ const LISTINO_NDX = [ // CW put NDX SeDeX, Directa SIM 16/11/2026 (S=27600, pari
   { k: 21000, em: "Vontobel", sc: "2027-09-19", ask: 0.589 },
   { k: 19000, em: "Vontobel", sc: "2027-06-17", ask: 0.2855 }
 ];
+const LISTINO_SPX = [ // CW put S&P 500, SG export 17/11/2026 (S=7402, parita 1000:1=0.001); ask = minimo per strike/scadenza
+  { k: 5600, sc: "2026-12-18", ask: 0.0100 }, { k: 5800, sc: "2026-12-18", ask: 0.0120 },
+  { k: 6000, sc: "2026-12-18", ask: 0.0145 }, { k: 6200, sc: "2026-12-18", ask: 0.0175 },
+  { k: 6400, sc: "2026-12-18", ask: 0.0225 }, { k: 6600, sc: "2026-12-18", ask: 0.0295 },
+  { k: 6800, sc: "2026-12-18", ask: 0.0405 }, { k: 7200, sc: "2026-12-18", ask: 0.0895 },
+  { k: 6200, sc: "2027-03-19", ask: 0.0665 }, { k: 6400, sc: "2027-03-19", ask: 0.0815 },
+  { k: 6800, sc: "2027-03-19", ask: 0.1235 }, { k: 7000, sc: "2027-03-19", ask: 0.1545 },
+  { k: 7400, sc: "2027-03-19", ask: 0.2475 },
+  { k: 6000, sc: "2027-06-17", ask: 0.0940 }, { k: 6600, sc: "2027-06-17", ask: 0.1555 },
+  { k: 7000, sc: "2027-06-17", ask: 0.2210 }, { k: 7200, sc: "2027-06-17", ask: 0.2650 },
+  { k: 7400, sc: "2027-06-17", ask: 0.3180 },
+  { k: 6400, sc: "2027-09-17", ask: 0.1735 }, { k: 6800, sc: "2027-09-17", ask: 0.2345 },
+  { k: 7000, sc: "2027-09-17", ask: 0.2735 }, { k: 7200, sc: "2027-09-17", ask: 0.3180 },
+  { k: 7400, sc: "2027-09-17", ask: 0.3700 },
+  { k: 6000, sc: "2027-12-17", ask: 0.1600 }, { k: 6400, sc: "2027-12-17", ask: 0.2095 },
+  { k: 6600, sc: "2027-12-17", ask: 0.2400 }, { k: 6800, sc: "2027-12-17", ask: 0.2755 },
+  { k: 7000, sc: "2027-12-17", ask: 0.3150 }, { k: 7200, sc: "2027-12-17", ask: 0.3610 },
+  { k: 7400, sc: "2027-12-17", ask: 0.4130 }
+];
 function calcSigs() {
   const S = num("sgS"), iv = num("sgIv"), hv = num("sgHv"), mesi = num("sgMesi"), w = num("sgW");
   if ([S, iv, mesi].some(isNaN) || S <= 0 || iv <= 0 || mesi <= 0)
@@ -1795,7 +1814,9 @@ function calcSigs() {
   const d = S >= 200 ? 0 : S >= 20 ? 1 : 2;
   const vega = function(k) { const e = 0.01; return (bsPut(S, k, T, sg + e, r) - bsPut(S, k, T, sg, r)) / e / S * 100; };
   let out = card("σ blend", nf(sg * 100, 1) + "%   (IV " + nf(iv, 1) + "% · HV " + nf(hw, 1) + "% · peso IV " + nf(ww * 100, 0) + "%)", "neutral");
-  out += '<table class="scen"><tr><th>Gradino</th><th>Fisso</th><th>σ</th><th>Media</th><th>Premio %<br>f · σ · m</th><th>Vega m</th><th>CW reale 16/11<br>K · prem%</th></tr>';
+  const lst = S >= 15000 ? LISTINO_NDX : LISTINO_SPX;
+  const lstName = S >= 15000 ? "NDX 16/11" : "SPX 17/11";
+  out += '<table class="scen"><tr><th>Gradino</th><th>Fisso</th><th>σ</th><th>Media</th><th>Premio %<br>f · σ · m</th><th>Vega m</th><th>CW reale ' + lstName + '<br>K · prem%</th></tr>';
   let totF = 0, totS = 0, totM = 0;
   const ksM = [];
   fissi.forEach(function(f, i) {
@@ -1809,7 +1830,7 @@ function calcSigs() {
     const pM = bsPut(S, kM, T, sg, r) / S * 100;
     totF += pF; totS += pS; totM += pM;
     let best = null, bd = 1e18;
-    LISTINO_NDX.forEach(function(cw) {
+    lst.forEach(function(cw) {
       if (cw.ask == null) return;
       const dd = Math.abs(cw.k - kM);
       if (dd < bd) { bd = dd; best = cw; }
@@ -2104,6 +2125,7 @@ document.addEventListener("DOMContentLoaded", function() { btryApplyLock(); btry
 </script>
 </body>
 </html>
+
 
 
 
