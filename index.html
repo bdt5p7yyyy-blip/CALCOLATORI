@@ -7,6 +7,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="format-detection" content="telephone=no" />
 <meta name="theme-color" content="#0b1220" />
+<meta name="apple-mobile-web-app-title" content="Calcolatori" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
 <title>Calcolatori Opzioni, CW e Obbligazioni</title>
 <style>
   :root {
@@ -25,36 +30,64 @@
   header h1 { font-size: 17px; font-weight: 700; }
   header p { font-size: 11px; opacity: .7; margin-top: 2px; }
   nav {
-    display: flex; flex-wrap: wrap; position: sticky; top: 0; z-index: 10;
+    position: sticky; top: 0; z-index: 10;
     background: #1e293b; border-bottom: 1px solid #334155;
   }
-  @media (max-width: 479px) { nav button { flex: 1 1 24%; padding: 11px 2px; font-size: 12px; } }
-  nav button {
-    flex: 1; padding: 12px 4px; border: none; background: none;
-    font-size: 13px; font-weight: 700; cursor: pointer;
-    text-transform: uppercase; letter-spacing: .5px;
-    color: var(--c, #94a3b8); opacity: .9; transition: opacity .15s;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  /* riga 1: i 4 gruppi */
+  .groups { display: flex; background: #0f172a; }
+  .groups button {
+    flex: 1; padding: 10px 2px 9px; border: none; background: none; cursor: pointer;
+    font-size: 12.5px; font-weight: 800; letter-spacing: .3px; text-transform: uppercase;
+    color: var(--g, #94a3b8); opacity: .65; border-bottom: 3px solid transparent;
   }
+  .groups button .ic { display: block; font-size: 17px; line-height: 1.1; margin-bottom: 2px; }
+  .groups button.active { opacity: 1; border-bottom-color: var(--g); background: rgba(255,255,255,0.06); }
+  .groups button[data-group="guida"] { --g: #f472b6; }
+  .groups button[data-group="cw"]    { --g: #60a5fa; }
+  .groups button[data-group="cop"]   { --g: #4ade80; }
+  .groups button[data-group="bond"]  { --g: #22d3ee; }
+  /* riga 2: le tab del gruppo, scorrevoli in orizzontale */
+  .tabs { display: flex; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 0 4px; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs button {
+    flex: 0 0 auto; padding: 11px 12px; border: none; background: none; cursor: pointer;
+    font-size: 13px; font-weight: 700; white-space: nowrap;
+    color: var(--c, #94a3b8); opacity: .75; border-bottom: 3px solid transparent;
+  }
+  .tabs button[hidden] { display: none; }
+  .tabs button.active { opacity: 1; color: #f8fafc; border-bottom-color: var(--c, #f8fafc); }
   a { color: #fbbf24; text-decoration: underline; }
-  nav button.active { color: var(--c, #f8fafc); opacity: 1; border-bottom: 3px solid var(--c, #f8fafc); background: rgba(255, 255, 255, 0.07); border-radius: 8px 8px 0 0; }
-  nav button:nth-child(1) { --c: #f472b6; }  /* Istruzioni — rosa */
-  nav button:nth-child(2) { --c: #60a5fa; }  /* Payoff — azzurro */
-  nav button:nth-child(3) { --c: #fbbf24; }  /* Strategia — ambra */
-  nav button:nth-child(4) { --c: #4ade80; }  /* Hedge — verde */
-  nav button:nth-child(5) { --c: #a78bfa; }  /* Riacquisto — viola */
-  nav button:nth-child(6) { --c: #22d3ee; }  /* Bond FX — ciano */
-  nav button:nth-child(7) { --c: #e2e8f0; }  /* Obbligazioni — perla */
-  nav button:nth-child(8) { --c: #facc15; }  /* Confronto — giallo */
-  nav button:nth-child(9) { --c: #a3e635; }  /* Ladder — lime */
-  nav button:nth-child(10) { --c: #e879f9; }  /* Calendario — fucsia */
-  nav button:nth-child(11) { --c: #38bdf8; }  /* IV implicita — cielo */
-  nav button:nth-child(12) { --c: #fb7185; }  /* Costo annuo — corallo */
-  nav button:nth-child(13) { --c: #14b8a6; }  /* Confronto Bond — teal */
-  nav button:nth-child(14) { --c: #34d399; }  /* Scala — smeraldo */
-  nav button:nth-child(15) { --c: #f59e0b; }  /* Tracker — ambra */
-  nav button:nth-child(16) { --c: #c084fc; }  /* Bond TRY — viola */
-  nav button:nth-child(17) { --c: #fda4af; }  /* Scala Sigma — rosa chiaro */
+  .tabs button[data-tab="istruzioni"] { --c: #f472b6; }
+  .tabs button[data-tab="payoff"] { --c: #60a5fa; }
+  .tabs button[data-tab="strat"]  { --c: #fbbf24; }
+  .tabs button[data-tab="hedge"]  { --c: #4ade80; }
+  .tabs button[data-tab="buco"]   { --c: #a78bfa; }
+  .tabs button[data-tab="fx"]     { --c: #22d3ee; }
+  .tabs button[data-tab="bond"]   { --c: #e2e8f0; }
+  .tabs button[data-tab="conf"]   { --c: #facc15; }
+  .tabs button[data-tab="lad"]    { --c: #a3e635; }
+  .tabs button[data-tab="cal"]    { --c: #e879f9; }
+  .tabs button[data-tab="ivs"]    { --c: #38bdf8; }
+  .tabs button[data-tab="costo"]  { --c: #fb7185; }
+  .tabs button[data-tab="duco"]   { --c: #14b8a6; }
+  .tabs button[data-tab="scala"]  { --c: #34d399; }
+  .tabs button[data-tab="track"]  { --c: #f59e0b; }
+  .tabs button[data-tab="btry"]   { --c: #c084fc; }
+  .tabs button[data-tab="sigs"]   { --c: #fda4af; }
+  /* barra valuta comune ai tab dei CW */
+  .fxbar {
+    display: none; margin: 0 0 14px; padding: 10px 12px; border-radius: 12px;
+    background: rgba(96,165,250,0.10); border: 1px solid #1d4ed8;
+    font-size: 13px; color: #cbd5e1; gap: 8px 12px; flex-wrap: wrap; align-items: center;
+  }
+  .fxbar.on { display: flex; }
+  .fxbar label { display: inline; margin: 0 4px 0 0; font-size: 13px; }
+  .fxbar select, .fxbar input { width: auto; padding: 7px 8px; font-size: 15px; border-radius: 8px; }
+  .fxbar input { width: 82px; }
+  .fxbar .info { flex-basis: 100%; font-size: 12px; color: #93c5fd; }
+  .fxbar .info b { color: #fbbf24; }
+  .backup { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .backup .btn { flex: 1 1 140px; width: auto; margin-top: 0; }
   main { max-width: 680px; margin: 0 auto; padding: 14px; }
   section { display: none; }
   section.active { display: block; }
@@ -184,7 +217,8 @@
     main { max-width: 900px; padding: 20px 22px; }
     header h1 { font-size: 21px; }
     header p { font-size: 12px; }
-    nav button { font-size: 15px; padding: 14px 6px; }
+    .tabs button { font-size: 15px; padding: 13px 14px; }
+    .groups button { font-size: 14px; }
     h2 { font-size: 17px; }
     label { font-size: 13px; }
     input, select { font-size: 17px; padding: 12px 12px; border-radius: 12px; }
@@ -220,29 +254,67 @@
   <p>Opzioni &amp; Covered Warrant · Strategie Put · Obbligazioni</p>
 </header>
 <nav>
-  <button class="active" data-tab="istruzioni">Istruzioni</button>
-  <button data-tab="fx">Bond FX</button>
-  <button data-tab="bond">Obbligazioni</button>
-  <button data-tab="duco">Confronto Bond</button>
-  <button data-tab="btry">Bond TRY</button>
-  <button data-tab="payoff">Payoff</button>
-  <button data-tab="strat">Strategia</button>
-  <button data-tab="hedge">Hedge</button>
-  <button data-tab="buco">Riacquisto</button>
-  <button data-tab="conf">Confronto</button>
-  <button data-tab="lad">Ladder</button>
-  <button data-tab="cal">Calendario</button>
-  <button data-tab="ivs">IV implicita</button>
-  <button data-tab="costo">Costo annuo</button>
-  <button data-tab="scala">Scala</button>
-  <button data-tab="track">Tracker</button>
-  <button data-tab="sigs">Scala Σ</button>
+  <div class="groups">
+    <button data-group="guida"><span class="ic">📘</span>Guida</button>
+    <button data-group="cw"><span class="ic">🎯</span>CW &amp; Opzioni</button>
+    <button data-group="cop"><span class="ic">🛡️</span>Coperture</button>
+    <button data-group="bond"><span class="ic">💶</span>Obbligazioni</button>
+  </div>
+  <div class="tabs">
+    <button data-group="guida" data-tab="istruzioni">Guida e backup</button>
+    <button data-group="cw" data-tab="payoff">Payoff</button>
+    <button data-group="cw" data-tab="strat">Strategia</button>
+    <button data-group="cw" data-tab="conf">Confronto CW</button>
+    <button data-group="cw" data-tab="ivs">IV implicita</button>
+    <button data-group="cw" data-tab="costo">Costo annuo</button>
+    <button data-group="cop" data-tab="hedge">Hedge</button>
+    <button data-group="cop" data-tab="scala">Scala</button>
+    <button data-group="cop" data-tab="sigs">Scala Σ</button>
+    <button data-group="cop" data-tab="track">Tracker</button>
+    <button data-group="cop" data-tab="lad">Ladder</button>
+    <button data-group="cop" data-tab="cal">Calendario</button>
+    <button data-group="cop" data-tab="buco">Riacquisto</button>
+    <button data-group="bond" data-tab="bond">Obbligazioni</button>
+    <button data-group="bond" data-tab="duco">Confronto Bond</button>
+    <button data-group="bond" data-tab="fx">Bond FX</button>
+    <button data-group="bond" data-tab="btry">Bond TRY</button>
+  </div>
 </nav>
 <main>
 
+<!-- ================= VALUTA COMUNE AI TAB DEI CW ================= -->
+<div class="fxbar" id="fxBar">
+  <span><label for="gCcy">Sottostante in</label><select id="gCcy" onchange="gFxSave()">
+    <option value="EUR">€ (FTSE MIB, DAX, Euro Stoxx)</option>
+    <option value="USD">$ (Nasdaq-100, S&amp;P 500)</option></select></span>
+  <span id="gUsdBox"><label for="gQuanto">CW quanto?</label><select id="gQuanto" onchange="gFxSave()">
+    <option value="no">No</option><option value="si">Sì</option></select></span>
+  <span id="gFxBox"><label for="gFxRate">1 € =</label><input id="gFxRate" type="number" inputmode="decimal" step="0.0001" value="1.12" oninput="gFxSave()" /> $
+    <a href="https://www.google.com/finance/quote/EUR-USD" target="_blank">live ↗</a></span>
+  <span class="info" id="gFxInfo"></span>
+</div>
+
 <!-- ================= ISTRUZIONI GITHUB ================= -->
 <section id="istruzioni" class="active">
-  <h2>🔑 Istruzioni GitHub — dare a Vibe il permesso di pubblicare</h2>
+  <h2>💾 Backup dei dati</h2>
+  <div class="note" style="border-left-color:#4ade80">
+    Tracker delle put, Bond TRY e impostazioni del cambio sono salvati <b>solo su questo dispositivo</b>.
+    Esporta un file di backup ogni tanto (e prima di cambiare telefono): con <b>Importa</b> lo ripristini su qualunque dispositivo.
+  </div>
+  <div class="backup">
+    <button class="btn" onclick="bkExport()">⬇️ Esporta backup</button>
+    <button class="btn ghost" onclick="$('bkFile').click()">⬆️ Importa backup</button>
+    <input id="bkFile" type="file" accept="application/json,.json" style="display:none" onchange="bkImport(this)" />
+  </div>
+  <div class="results" id="bkOut"></div>
+
+  <h2 style="margin-top:22px">📲 Installazione e aggiornamenti</h2>
+  <div class="note">
+    Su iPhone: apri la pagina in <b>Safari</b> → Condividi → <b>Aggiungi alla schermata Home</b>. L'app funziona anche <b>senza connessione</b>.
+    Quando c'è rete scarica da sola l'ultima versione pubblicata: se non la vedi subito, chiudi e riapri l'app.
+  </div>
+
+  <h2 style="margin-top:22px">🔑 Istruzioni GitHub — dare a Vibe il permesso di pubblicare</h2>
   <div class="note" style="border-left-color:#f472b6">
     <b>1.</b> Apri <a href="https://github.com/settings/personal-access-tokens" target="_blank">github.com/settings/personal-access-tokens</a><br>
     &nbsp;&nbsp;&nbsp;&nbsp;(GitHub → Settings → Developer settings → Fine-grained personal access tokens)<br>
@@ -254,8 +326,7 @@
     <b>7.</b> Finito → <b>revoca il token</b> (Delete) dalla stessa pagina: il registro resta pulito
   </div>
   <div class="note">
-    Dopo ogni aggiornamento la PWA sull'iPhone mostra ancora la versione in cache:
-    riapri in <b>Safari</b> o reinstalla l'icona dalla home per vedere quella nuova.
+    Con <b>Claude</b> non serve il token: basta collegare GitHub una volta dalle impostazioni di claude.ai (Connettori) e installare l'app GitHub di Claude sul repository.
   </div>
 </section>
 
@@ -452,7 +523,7 @@
       <div><label for="c1Nome">Emittente / nome</label><input id="c1Nome" type="text" placeholder="es. UniCredit" /></div>
       <div><label for="c1K">Strike K</label><input id="c1K" type="number" inputmode="decimal" placeholder="es. 85" /></div>
       <div><label for="c1Prem">Premio per strum.</label><input id="c1Prem" type="number" inputmode="decimal" placeholder="es. 0.05" /></div>
-      <div><label for="c1P">Parità P</label><input id="c1P" type="number" inputmode="decimal" placeholder="es. 0.01" /></div>
+      <div><label for="c1P">Parità P (CW per 1 sottost.)</label><input id="c1P" type="number" inputmode="decimal" placeholder="es. 1000" /></div>
       <div><label for="c1GG">Giorni a scadenza</label><input id="c1GG" type="number" inputmode="numeric" placeholder="es. 365" /></div>
       <div><label for="c1Fx">Liquidazione</label>
         <select id="c1Fx"><option value="no">Standard max</option><option value="si">÷S (FX)</option></select></div>
@@ -465,7 +536,7 @@
       <div><label for="c2Nome">Emittente / nome</label><input id="c2Nome" type="text" placeholder="es. BNP" /></div>
       <div><label for="c2K">Strike K</label><input id="c2K" type="number" inputmode="decimal" placeholder="es. 85" /></div>
       <div><label for="c2Prem">Premio per strum.</label><input id="c2Prem" type="number" inputmode="decimal" placeholder="es. 0.06" /></div>
-      <div><label for="c2P">Parità P</label><input id="c2P" type="number" inputmode="decimal" placeholder="es. 0.01" /></div>
+      <div><label for="c2P">Parità P</label><input id="c2P" type="number" inputmode="decimal" placeholder="es. 1000" /></div>
       <div><label for="c2GG">Giorni a scadenza</label><input id="c2GG" type="number" inputmode="numeric" placeholder="es. 365" /></div>
       <div><label for="c2Fx">Liquidazione</label>
         <select id="c2Fx"><option value="no">Standard max</option><option value="si">÷S (FX)</option></select></div>
@@ -478,7 +549,7 @@
       <div><label for="c3Nome">Emittente / nome</label><input id="c3Nome" type="text" placeholder="es. Goldman" /></div>
       <div><label for="c3K">Strike K</label><input id="c3K" type="number" inputmode="decimal" placeholder="es. 85" /></div>
       <div><label for="c3Prem">Premio per strum.</label><input id="c3Prem" type="number" inputmode="decimal" placeholder="es. 0.055" /></div>
-      <div><label for="c3P">Parità P</label><input id="c3P" type="number" inputmode="decimal" placeholder="es. 0.01" /></div>
+      <div><label for="c3P">Parità P</label><input id="c3P" type="number" inputmode="decimal" placeholder="es. 1000" /></div>
       <div><label for="c3GG">Giorni a scadenza</label><input id="c3GG" type="number" inputmode="numeric" placeholder="es. 365" /></div>
       <div><label for="c3Fx">Liquidazione</label>
         <select id="c3Fx"><option value="no">Standard max</option><option value="si">÷S (FX)</option></select></div>
@@ -491,7 +562,7 @@
       <div><label for="c4Nome">Emittente / nome</label><input id="c4Nome" type="text" placeholder="es. Vontobel" /></div>
       <div><label for="c4K">Strike K</label><input id="c4K" type="number" inputmode="decimal" placeholder="es. 85" /></div>
       <div><label for="c4Prem">Premio per strum.</label><input id="c4Prem" type="number" inputmode="decimal" placeholder="es. 0.048" /></div>
-      <div><label for="c4P">Parità P</label><input id="c4P" type="number" inputmode="decimal" placeholder="es. 0.01" /></div>
+      <div><label for="c4P">Parità P</label><input id="c4P" type="number" inputmode="decimal" placeholder="es. 1000" /></div>
       <div><label for="c4GG">Giorni a scadenza</label><input id="c4GG" type="number" inputmode="numeric" placeholder="es. 365" /></div>
       <div><label for="c4Fx">Liquidazione</label>
         <select id="c4Fx"><option value="no">Standard max</option><option value="si">÷S (FX)</option></select></div>
@@ -588,16 +659,6 @@
     <div><label for="cP">Parità P (CW per 1 azione)</label><input id="cP" type="number" inputmode="decimal" placeholder="es. 10" /></div>
     <div><label for="costoS">Prezzo sottostante S (nella valuta del KID)</label><input id="costoS" type="number" inputmode="decimal" placeholder="es. 293.69" /></div>
   </div>
-  <div class="links">
-    <button type="button" onclick="setCostoVal('USD', 1.12)">💱 USD</button>
-    <button type="button" onclick="setCostoVal('EUR')">💶 EUR</button>
-  </div>
-  <div class="card" id="cValBox" style="display:none">
-    <span class="k">Valuta del sottostante</span><span class="v neutral" id="cValLabel"></span>
-  </div>
-  <div class="grid">
-    <div id="cRowCambio"><label for="cCambio">Cambio EUR/USD (quanti USD per 1 €)</label><input id="cCambio" type="number" inputmode="decimal" value="1.12" /></div>
-  </div>
     <div><label for="cGG">Giorni a scadenza</label><input id="cGG" type="number" inputmode="decimal" placeholder="es. 133" /></div>
     <div class="full"><label for="costoCap">Capitale da coprire (€) — opzionale</label><input id="costoCap" type="number" inputmode="decimal" placeholder="es. 10000" /></div>
   </div>
@@ -605,9 +666,9 @@
   <div class="results" id="costoOut"></div>
   <div class="note">
     I 4 punti, come nel libro: <b>1)</b> premio × parità → costo per azione-equivalente (KID in numeri interi → tal quale; KID in decimali → reciproco) ·
-    <b>2)</b> allineare le valute (€ × cambio = USD) · <b>3)</b> ÷ S → % del nozionale · <b>4)</b> × 365 ÷ giorni → annualizzato.
+    <b>2)</b> allineare le valute (€ × cambio = USD, dalla barra valuta in alto) · <b>3)</b> ÷ S → % del nozionale · <b>4)</b> × 365 ÷ giorni → annualizzato.
     Sanity: il risultato deve essere plausibile (regola mentale: 3–8% annuo un indice, 10–25% una singola azione tech); se esce 100× o 0,01× la parità è girata — rileggi il KID.
-    Il cambio è preimpostato a 1,12 (rif. 30/10/26, come nella tab Bond FX) e il link "cambio live" apre Google Finance: leggi il cambio e digitalo tu — così funziona ovunque, anche offline.
+    Valuta del sottostante, CW quanto e cambio si impostano una volta sola nella <b>barra valuta</b> in cima alla pagina: valgono per tutti i tab dei CW.
   </div>
 </section>
 
@@ -651,8 +712,6 @@
   </div>
 </section>
 
-</section>
-
 <!-- ================= SCALA SIGMA ================= -->
 <section id="sigs">
   <h2>Scala Σ — media tra ladder fissa (−10…−30 a passi di 5) e strike sigma</h2>
@@ -685,6 +744,8 @@
   <button class="btn" onclick="tkAdd()">Aggiungi la put alla scala</button>
   <div class="results" id="tkOut"></div>
   <div class="note">
+    <b>Valuta</b>: per una put su NDX/S&amp;P con CW non quanto imposta la barra valuta in alto <b>prima</b> di aggiungere la put; il valore teorico viene convertito in € al cambio della barra.
+    <b>Prezzo reale</b>: se inserisci il denaro del CW × parità, il semaforo di oggi usa quello invece del valore teorico (che tiene ferma la IV d'acquisto).<br>
     <b>Semaforo</b>: <span style="color:#4ade80">verde</span> = residuo sopra il 75% · <span style="color:#fbbf24">giallo</span> = 70-75%, pensa al rolling · <span style="color:#f87171">rosso</span> = sotto il 70%, roll ora · ⏱ a 45 giorni dalla scadenza la finestra rolling si apre comunque · premio per 1 sottostante = premio CW x parita'.
   </div>
 </section>
@@ -736,13 +797,61 @@ function card(k, v, cls) {
 }
 function err(msg) { return '<div class="card"><span class="k" style="color:#f87171">' + msg + '</span></div>'; }
 
-/* ---------- Tabs ---------- */
-document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
-  document.querySelectorAll("nav button").forEach(x => x.classList.remove("active"));
-  document.querySelectorAll("section").forEach(x => x.classList.remove("active"));
-  b.classList.add("active");
-  $(b.dataset.tab).classList.add("active");
+/* ---------- Navigazione a gruppi ---------- */
+const FX_TABS = ["payoff", "strat", "conf", "ivs", "costo", "hedge", "sigs", "track"];
+function lsGet(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+function showTab(tab) {
+  const btn = document.querySelector('.tabs button[data-tab="' + tab + '"]') || document.querySelector(".tabs button");
+  const grp = btn.dataset.group;
+  document.querySelectorAll(".groups button").forEach(x => x.classList.toggle("active", x.dataset.group === grp));
+  document.querySelectorAll(".tabs button").forEach(x => { x.hidden = x.dataset.group !== grp; x.classList.toggle("active", x === btn); });
+  document.querySelectorAll("main > section").forEach(x => x.classList.toggle("active", x.id === btn.dataset.tab));
+  $("fxBar").classList.toggle("on", FX_TABS.indexOf(btn.dataset.tab) >= 0);
+  lsSet("calcTabV1", btn.dataset.tab);
+}
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+document.querySelectorAll(".groups button").forEach(b => b.onclick = () => {
+  const mem = lsGet("calcGrpTabV1", {});
+  showTab(mem[b.dataset.group] || document.querySelector('.tabs button[data-group="' + b.dataset.group + '"]').dataset.tab);
 });
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
+  const mem = lsGet("calcGrpTabV1", {}); mem[b.dataset.group] = b.dataset.tab; lsSet("calcGrpTabV1", mem);
+}));
+
+/* ---------- Valuta comune: premio in € vs sottostante in $ ----------
+   gFx() = quanti $ vale 1 € di premio, se serve convertire (sottostante in $ e CW non quanto); altrimenti 1.
+   Regola: premio € × gFx() = premio nella valuta del sottostante; rimborso in valuta ÷ gFx() = rimborso in €. */
+function gConv() { return $("gCcy").value === "USD" && $("gQuanto").value === "no"; }
+function gFx() {
+  if (!gConv()) return 1;
+  const v = parseFloat(String($("gFxRate").value).replace(",", "."));
+  return v > 0 ? v : NaN;
+}
+function gFxInfo() {
+  const usd = $("gCcy").value === "USD";
+  $("gUsdBox").style.display = usd ? "" : "none";
+  $("gFxBox").style.display = gConv() ? "" : "none";
+  const f = gFx();
+  $("gFxInfo").innerHTML = !usd ? "Sottostante in euro: nessuna conversione."
+    : !gConv() ? "CW quanto: 1 punto = 1 €, nessuna conversione."
+    : isNaN(f) ? "<b>Inserisci il cambio EUR/USD.</b>"
+    : "Conversione attiva: premio € × <b>" + nf(f, 4) + "</b> = premio in $ · rimborso $ ÷ " + nf(f, 4) + " = rimborso in €.";
+}
+function gFxSave() {
+  lsSet("calcFxV1", { ccy: $("gCcy").value, quanto: $("gQuanto").value, fx: $("gFxRate").value });
+  gFxInfo();
+}
+(function gFxLoad() {
+  const m = lsGet("calcFxV1", null);
+  if (m) { $("gCcy").value = m.ccy || "EUR"; $("gQuanto").value = m.quanto || "no"; if (m.fx) $("gFxRate").value = m.fx; }
+  gFxInfo();
+})();
+function fxErr() { return err("Barra valuta: inserisci il cambio EUR/USD (> 0) oppure scegli sottostante in € / CW quanto."); }
+function fxCard(f) {
+  return f === 1 ? "" : card("Cambio applicato", "1 € = " + nf(f, 4) + " $" +
+    ' <span style="font-weight:400;font-size:11px;opacity:.7">premio € → $ · rimborso $ → €</span>', "neutral");
+}
 
 /* ---------- Distanza % strike vs sottostante (live) ---------- */
 function updDist() {
@@ -792,14 +901,16 @@ function calcPayoff() {
         N = num("pNum"), S = num("pS"), M = num("pMolt"), fx = $("pFx").value === "si";
   if ([K, prem, P, N, S, M].some(isNaN) || P <= 0 || N <= 0)
     return void ($("pOut").innerHTML = err("Compila tutti i campi (P e N. strumenti > 0)."));
+  const F = fx ? 1 : gFx();                 // CW su cambio (÷S): già nella valuta di liquidazione
+  if (isNaN(F)) return void ($("pOut").innerHTML = fxErr());
 
   let intrShare = tipo === "call" ? Math.max(S - K, 0) : Math.max(K - S, 0);
-  if (fx) intrShare = intrShare / S;
+  if (fx) intrShare = intrShare / S; else intrShare = intrShare / F;
   const intrUnit = intrShare / P;
   const intrTot = intrShare * N * M / P;
   const costo = prem * N * M;
   const pnl = (verso === "buy" ? intrTot - costo : costo - intrTot);
-  let be = tipo === "call" ? K + prem * P : K - prem * P;
+  let be = tipo === "call" ? K + prem * P * F : K - prem * P * F;
   if (fx) {
     const target = prem * P;
     let lo = K, hi = K * 3 + 1, mid;
@@ -813,15 +924,15 @@ function calcPayoff() {
   }
   const espAz = P !== 0 ? N / P : NaN;
   const cls = pnl > 0 ? "pos" : pnl < 0 ? "neg" : "neutral";
-  $("pOut").innerHTML =
-    card("Valore intrinseco per strumento", nf(intrUnit, 4)) +
+  $("pOut").innerHTML = fxCard(F) +
+    card("Valore intrinseco per strumento", nf(intrUnit, 4) + " €") +
     card("Intrinseco totale a scadenza", nf(intrTot) + " €") +
     card("Costo totale (premio × N.)", nf(costo) + " €", "neg") +
     card("<b>P&amp;L totale a scadenza</b>", (pnl >= 0 ? "+" : "") + nf(pnl) + " €", cls) +
     card("Break-even sottostante (BE)", nf(be, 4), "neutral") +
     (tipo === "call"
       ? card("Max profitto (buy call)", "Illimitato") + card("Max perdita (buy call)", nf(costo) + " €", "neg")
-      : card("Max profitto (buy put, no FX)", nf((K - prem * P) * N * M / P) + " €") + card("Max perdita (buy put)", nf(costo) + " €", "neg")) +
+      : card("Max profitto (buy put, no FX)", nf(K * N * M / P / F - costo) + " €") + card("Max perdita (buy put)", nf(costo) + " €", "neg")) +
     card("Esposizione azioni equivalente (N/P)", nf(espAz, 4));
 }
 
@@ -831,12 +942,12 @@ function readLeg(pre) {
   const tipo = $(pre + "Tipo").value, verso = $(pre + "Verso").value;
   const K = num(pre + "K"), prem = num(pre + "Prem"), P = num(pre + "P");
   const attiva = !isNaN(N) && N > 0 && !isNaN(K) && !isNaN(prem) && !isNaN(P) && P > 0;
-  return { tipo, verso, K, prem, P, N, attiva, pre };
+  return { tipo, verso, K, prem, P, N, attiva, pre, F: gFx() };
 }
 function legPnl(leg, S) {
   if (!leg.attiva) return 0;
   const intr = (leg.tipo === "call" ? Math.max(S - leg.K, 0) : Math.max(leg.K - S, 0));
-  const intrTot = intr * leg.N / leg.P;
+  const intrTot = intr * leg.N / leg.P / (leg.F || 1);   // rimborso in valuta ÷ cambio = €
   const premioTot = leg.prem * leg.N;
   return leg.verso === "buy" ? intrTot - premioTot : premioTot - intrTot;
 }
@@ -851,6 +962,7 @@ function calcStrat() {
   const l1 = readLeg("l1"), l2 = readLeg("l2");
   if (isNaN(S0) || S0 <= 0) return void ($("sOut").innerHTML = err("Inserisci il prezzo attuale del sottostante S₀."));
   if (!l1.attiva && !l2.attiva) return void ($("sOut").innerHTML = err("Compila almeno la Gamba 1 (K, premio, N., P)."));
+  if (isNaN(l1.F)) return void ($("sOut").innerHTML = fxErr());
 
   const tot = S => legPnl(l1, S) + legPnl(l2, S);
   const legs = [l1, l2].filter(l => l.attiva);
@@ -895,7 +1007,7 @@ function calcStrat() {
   const pnl1 = legPnl(l1, S0), pnl2 = legPnl(l2, S0);
 
   const fmt = v => (v >= 0 ? "+" : "") + nf(v) + " €";
-  $("sOut").innerHTML =
+  $("sOut").innerHTML = fxCard(l1.F) +
     card("Strategia", legs.map(legLabel).join("<br>") ) +
     card("Premi netti (costo/incasso)", fmt(netPremi), netPremi >= 0 ? "pos" : "neg") +
     card("<b>P/L totale a scadenza con S = " + nf(S0, 4) + "</b>", fmt(pnl0), pnl0 >= 0 ? "pos" : "neg") +
@@ -1067,18 +1179,20 @@ function calcHedge() {
   if ([X, S0, K, prem, P].some(isNaN) || X <= 0 || S0 <= 0 || K <= 0 || P <= 0 || prot <= 0 || prot > 100)
     return void ($("hOut").innerHTML = err("Compila tutti i campi (X, S₀, K, premio, P > 0; protezione 0–100)."));
 
-  const Nexact = X / S0 * P * prot / 100;
+  const F = gFx();
+  if (isNaN(F)) return void ($("hOut").innerHTML = fxErr());
+  const Nexact = X * F / S0 * P * prot / 100;   // capitale € → valuta del sottostante
   const N = Math.ceil(Nexact);
   const costo = N * prem;
-  const floorVal = K * N / P - costo;          // valore minimo totale a S→0 (portafoglio azzerato + put ITM)
+  const floorVal = K * N / P / F - costo;      // valore minimo totale a S→0 (portafoglio azzerato + put ITM)
   const maxLossHedge = X - floorVal;
   const fmt = v => (v >= 0 ? "+" : "") + nf(v) + " €";
 
-  const putPnl = S => Math.max(K - S, 0) * N / P - costo;
+  const putPnl = S => Math.max(K - S, 0) * N / P / F - costo;
   const portPnl = S => X * (S - S0) / S0;
   const totPnl = S => portPnl(S) + putPnl(S);
 
-  $("hOut").innerHTML =
+  $("hOut").innerHTML = fxCard(F) +
     card("<b>Put da comprare (esatto)</b>", nf(Nexact, 2), "neutral") +
     card("<b>Put da comprare (arrotondato ↑)</b>", nf(N, 0) + " strumenti", "pos") +
     card("Costo della protezione", nf(costo) + " €", "neg") +
@@ -1101,7 +1215,7 @@ function calcHedge() {
       '<td class="' + (solo >= 0 ? "pos" : "neg") + '">' + fmt(solo) + '</td></tr>' });
   });
   // pareggio hedge/scoperto: la put paga esattamente il suo costo
-  const Sbe = K - costo * P / N;
+  const Sbe = K - costo * P * F / N;
   if (Sbe > 0) {
     const vBe = (Sbe / S0 - 1) * 100;
     items.push({ v: vBe, html: '<tr class="beRow"><td colspan="6">⚖️ Pareggio hedge/scoperto: ' +
@@ -1133,7 +1247,7 @@ function calcDeltaMatch() {
   } else {
     cap = num("dmCap"); S0 = num("dmS0"); prot = num("dmProt");
     if (isNaN(prot)) prot = 100;
-    if (!isNaN(cap) && !isNaN(S0) && S0 > 0) az = cap * prot / 100 / S0;
+    if (!isNaN(cap) && !isNaN(S0) && S0 > 0) az = cap * gFx() * prot / 100 / S0;
   }
   if (isNaN(az) || az <= 0 || isNaN(dlt) || dlt <= 0 || dlt > 1 || isNaN(P) || P <= 0 || prot <= 0 || prot > 100)
     return void ($("dmOut").innerHTML = err(m === "capitale"
@@ -1145,7 +1259,7 @@ function calcDeltaMatch() {
     card("Valore esatto", nf(Ndx, 2), "neutral") +
     card("Ogni strumento vale", nf(dlt / P, 4) + " azioni-equivalenti", "neutral") +
     card("Esposizione coperta", nf(Nd * dlt / P, 2) + " azioni-equivalenti", "neutral");
-  if (m === "capitale") out += card("Capitale coperto", nf(Nd * dlt / P * S0) + " €", "neutral");
+  if (m === "capitale") out += card("Capitale coperto", nf(Nd * dlt / P * S0 / gFx()) + " €", "neutral");
   $("dmOut").innerHTML = out;
 }
 
@@ -1328,21 +1442,35 @@ function calcBond() {
     const scad = $("oScad").value;
     if (!scad)
       return void ($("oOut").innerHTML = err("In modalita' YTM compila la data di scadenza."));
-    const anni = (new Date(scad) - new Date()) / (1000 * 60 * 60 * 24 * 365);
+    const oggiB = new Date(); oggiB.setHours(0, 0, 0, 0);
+    const scadB = new Date(scad + "T00:00:00");
+    const anni = (scadB - oggiB) / 864e5 / 365.25;
     if (anni <= 0)
       return void ($("oOut").innerHTML = err("La data di scadenza e' nel passato."));
     const capInv = $("oPrezzoTipo").value === "pct" ? nom * pz / 100 : pz;
     const exitV = num("oExit");
     const uscita = nom * (isNaN(exitV) || exitV <= 0 ? 100 : exitV) / 100;
-    const nCed = Math.ceil(anni);                       // cedole intere ancora da incassare
+    // cedole ancora da incassare: una per ogni anniversario della scadenza successivo a oggi
+    // (prima era ceil(anni): con anni = 5,003 per un giorno bisestile contava 6 cedole invece di 5)
+    let nCed = 0;
+    while (nCed < 200) { const d = new Date(scadB); d.setFullYear(scadB.getFullYear() - nCed); if (d > oggiB) nCed++; else break; }
     const tq = $("oConv").value !== "clean";            // tel quel: rateo gia' nel prezzo -> cedole intere
     const cedoleTot = cedEur * (tq ? nCed : anni);
     const ytmLin = (cedoleTot + uscita - capInv) / capInv / anni * 100;
     const cedEq = cedEur / capInv * 100;                      // la rendita: cedola annua sul capitale investito
     const costPremio = (uscita - capInv) / capInv / anni * 100;  // il costo del premio annualizzato (negativo se sopra par)
+    // YTM composta (come Confronto Bond): flussi scontati con cedole annuali; la prossima cedola cade tra (anni − nCed + 1) anni.
+    // Con prezzo pulito si aggiunge il rateo stimato: cedola × frazione d'anno già trascorsa (nCed − anni).
+    const sporco = tq ? capInv : capInv + cedEur * (nCed - anni);
+    const pv = y => { let v = uscita / Math.pow(1 + y, anni); for (let k = 0; k < nCed; k++) v += cedEur / Math.pow(1 + y, anni - k); return v; };
+    let lo = -0.99, hi = 10;
+    for (let i = 0; i < 100; i++) { const mid = (lo + hi) / 2; (pv(mid) > sporco) ? lo = mid : hi = mid; }
+    const ytmComp = (lo + hi) / 2 * 100;
     $("oOut").innerHTML =
-      card("<b>YTM</b>", "<b>" + nf(ytmLin) + " % p.a.</b> <span style='font-weight:400;font-size:11px;opacity:.7'>lineare, " +
-        (tq ? "tel quel, " + (nCed === 1 ? "1 cedola intera" : nCed + " cedole intere") : "quotazione pulita, cedole pro-rata") + ", " + nf(anni, 2) + " anni</span>", ytmLin >= 0 ? "pos" : "neg") +
+      card("<b>YTM composta</b>", "<b>" + nf(ytmComp) + " % p.a.</b> <span style='font-weight:400;font-size:11px;opacity:.7'>flussi scontati, cedola annuale, " +
+        nf(anni, 2) + " anni" + (tq ? ", prezzo tel quel" : ", prezzo pulito + rateo stimato") + " — stesso metodo di Confronto Bond</span>", ytmComp >= 0 ? "pos" : "neg") +
+      card("YTM lineare (confronto)", nf(ytmLin) + " % p.a. <span style='font-weight:400;font-size:11px;opacity:.7'>" +
+        (tq ? "tel quel, " + (nCed === 1 ? "1 cedola intera" : nCed + " cedole intere") : "quotazione pulita, cedole pro-rata") + " — approssimazione semplice</span>", ytmLin >= 0 ? "pos" : "neg") +
       card("<b>CEDOLA EQUIVALENTE sul capitale investito</b>", "<b>" + nf(cedEq) + " %</b> <span style='font-weight:400;font-size:11px;opacity:.7'>= cedola annua ÷ prezzo pagato — la rendita pura</span>", "pos") +
       card("Cedole che incasserai", nf(cedoleTot) + " € <span style='font-weight:400;font-size:11px;opacity:.7'>" + (tq ? (nCed === 1 ? "1 cedola intera" : nCed + " cedole intere") : "pro-rata") + "</span>", "neutral") +
       card("Costo del premio (conto capitale)", nf(costPremio) + " % p.a." + (costPremio < 0 ? " — il prezzo che paghi per stare sopra par" : " — il premio ti torna in conto capitale"), costPremio < 0 ? "neg" : "pos");
@@ -1372,6 +1500,8 @@ oModeCol();
 function calcConf() {
   const tipo = $("cTipo").value, S = num("cS"), cap = num("cCap");
   if (isNaN(S) || S <= 0) return void ($("cOut").innerHTML = err("Inserisci il prezzo attuale del sottostante S."));
+  const G = gFx();
+  if (isNaN(G)) return void ($("cOut").innerHTML = fxErr());
   const rows = [];
   for (let i = 1; i <= 4; i++) {
     const K = num("c" + i + "K"), prem = num("c" + i + "Prem"), P = num("c" + i + "P"), GG = num("c" + i + "GG");
@@ -1382,10 +1512,11 @@ function calcConf() {
       rows.push({ nome, incompleto: true });
       continue;
     }
+    const F = fx ? 1 : G;                           // CW su cambio (÷S): nessuna conversione
     let intrUnit = tipo === "call" ? Math.max(S - K, 0) : Math.max(K - S, 0);
-    if (fx) intrUnit = intrUnit / S;
-    const intrStrum = intrUnit / P;                 // intrinseco per strumento (sanity)
-    const premAz = prem * P;                        // premio per azione
+    intrUnit = fx ? intrUnit / S : intrUnit / F;
+    const intrStrum = intrUnit / P;                 // intrinseco per strumento in € (sanity)
+    const premAz = prem * P * F;                    // premio per azione, nella valuta del sottostante
     const costPct = premAz / S * 100;                // % nozionale one-off
     const costAnn = costPct / (GG / 365);           // % annua
     const be = tipo === "call" ? K + premAz : K - premAz;
@@ -1394,7 +1525,7 @@ function calcConf() {
     else if (intrStrum > 0 && prem > intrStrum * 5) sanity = "tempo"; // quasi solo tempo
     let nStr = NaN, costTot = NaN;
     if (!isNaN(cap) && cap > 0) {
-      nStr = Math.ceil(cap * P / S);                // nozionale per strumento = S/P
+      nStr = Math.ceil(cap * F * P / S);            // nozionale per strumento = S/P (in valuta)
       costTot = nStr * prem;
     }
     rows.push({ nome, K, prem, P, GG, fx, intrStrum, premAz, costPct, costAnn, be, sanity, nStr, costTot, incompleto: false });
@@ -1418,7 +1549,7 @@ function calcConf() {
   const win = validi[0], lose = validi[validi.length - 1];
   const risparmioAnn = lose.costAnn - win.costAnn;
 
-  let html = '<div class="card cardHero"><span class="k">🏆 VINCE IL PREMIO PIÙ BASSO</span><span class="v">' +
+  let html = fxCard(G) + '<div class="card cardHero"><span class="k">🏆 VINCE IL PREMIO PIÙ BASSO</span><span class="v">' +
     win.nome + " · " + nf(win.costAnn) + " %/anno</span></div>";
   html += card("Costo del vincitore", nf(win.costPct) + " % nozionale · " + nf(win.costAnn) + " %/anno", "pos");
   html += card("Costo del peggiore (" + lose.nome + ")", nf(lose.costPct) + " % nozionale · " + nf(lose.costAnn) + " %/anno", "neg");
@@ -1574,7 +1705,9 @@ function calcIVS() {
   if (gg <= 0)
     return void ($("ivOut").innerHTML = err("La scadenza deve essere nel futuro."));
   const r = 0.02, q = 0, T = gg / 365;      // fissi internamente: per la IV contano poco
-  const perAzione = prem * P;               // valore per 1 azione (convenzione: premio = valore ÷ P)
+  const F = gFx();
+  if (isNaN(F)) return void ($("ivOut").innerHTML = fxErr());
+  const perAzione = prem * P * F;           // valore per 1 azione nella valuta del sottostante (premio € × parità × cambio)
   const intrin = tipo === "call" ? Math.max(S - K, 0) : Math.max(K - S, 0);
   if (perAzione - intrin <= 0)
     return void ($("ivOut").innerHTML = err("Il premio è tutto intrinseco (o sotto): zero valore tempo → IV non stimabile."));
@@ -1596,7 +1729,7 @@ function calcIVS() {
   const d1 = (Math.log(S / K) + (r + 0.5 * iv * iv) * T) / (iv * Math.sqrt(T));
   const delta = tipo === "call" ? ncdf(d1) : -ncdf(-d1);
   const dim = t => ' <span style="font-weight:400;font-size:11px;opacity:.7">' + t + "</span>";
-  let out =
+  let out = fxCard(F) +
     card("<b>IV IMPLICITA</b>", "<b>" + nf(iv * 100) + " %</b> p.a." + dim("la paura che fa pagare chi ti vende la protezione"), "pos") +
     card("Delta", nf(delta, 2) + dim("quanta protezione compri per strumento"), "neutral");
   if (!isNaN(ref) && ref > 0) {
@@ -1613,30 +1746,12 @@ function calcIVS() {
 }
 
 /* ---------- 13. Costo annualizzato (ricetta 4 punti) ---------- */
-let cValuta = "usd";
-function setCostoVal(code, rif) {
-  cValuta = code === "EUR" ? "eur" : "usd";
-  if (cValuta === "usd") {
-    $("cCambio").value = String(rif);        // col punto: input type=number rifiuta la virgola
-    $("cRowCambio").style.display = "";
-    $("cValLabel").innerHTML = "USD · 1 € = " + String(rif).replace(".", ",") + " $ <span style=\"font-weight:400;font-size:11px\">(rif. 30/10/26)</span>" +
-      '<a href="https://www.google.com/finance/quote/EUR-USD" target="_blank">cambio live ↗</a>';
-  } else {
-    $("cRowCambio").style.display = "none";
-    $("cValLabel").textContent = "EUR · nessuna conversione";
-  }
-  $("cValBox").style.display = "flex";
-}
 function calcCosto() {
   const prem = num("cPrem"), P = num("cP"), S = num("costoS"), gg = num("cGG");
-  const usd = cValuta === "usd";
-  const cambio = num("cCambio");
   const cap = num("costoCap");
-  const fx = usd ? (isNaN(cambio) || cambio <= 0 ? NaN : cambio) : 1;
+  const fx = gFx(), usd = fx !== 1;
   if (isNaN(prem) || prem <= 0 || isNaN(P) || P <= 0 || isNaN(S) || S <= 0 || isNaN(gg) || gg <= 0 || isNaN(fx))
-    return void ($("costoOut").innerHTML = err(usd
-      ? "Compila: premio (€), parità P, S, cambio EUR/USD e giorni a scadenza."
-      : "Compila: premio (€), parità P, S e giorni a scadenza."));
+    return void ($("costoOut").innerHTML = isNaN(fx) ? fxErr() : err("Compila: premio (€), parità P, S e giorni a scadenza."));
   const p1 = prem * P;                 // 1. costo per azione-equivalente, in €
   const p2 = p1 * fx;                  // 2. in valuta del sottostante (USD)
   const p3 = p2 / S * 100;             // 3. % del nozionale (sul periodo)
@@ -1769,6 +1884,12 @@ function calcScala() {
 }
 
 /* ---------- 15b. Scala Sigma: media tra ladder fissa e strike sigma ---------- */
+/* Listini reali di riferimento: servono a dare un ordine di grandezza concreto ai premi teorici.
+   Ogni listino porta la sua data: dopo 7 giorni la tab avvisa che i prezzi sono vecchi. */
+const LISTINI = {
+  NDX: { data: "2026-11-16", nome: "CW put NDX · Directa", multiplo: 0.001, righe: null },
+  SPX: { data: "2026-11-17", nome: "CW put S&P 500 · SG",  multiplo: 0.001, righe: null }
+};
 const LISTINO_NDX = [ // CW put NDX SeDeX, Directa SIM 16/11/2026 (S=27600, parita 0.001); ask null = sospeso
   { k: 26200, em: "Vontobel", sc: "2027-01-15", ask: 0.653 },
   { k: 26000, em: "SGE",     sc: "2027-03-19", ask: 0.925 },
@@ -1802,6 +1923,7 @@ const LISTINO_SPX = [ // CW put S&P 500, SG export 17/11/2026 (S=7402, parita 10
   { k: 7000, sc: "2027-12-17", ask: 0.3150 }, { k: 7200, sc: "2027-12-17", ask: 0.3610 },
   { k: 7400, sc: "2027-12-17", ask: 0.4130 }
 ];
+LISTINI.NDX.righe = LISTINO_NDX; LISTINI.SPX.righe = LISTINO_SPX;
 function calcSigs() {
   const S = num("sgS"), iv = num("sgIv"), hv = num("sgHv"), mesi = num("sgMesi"), w = num("sgW");
   if ([S, iv, mesi].some(isNaN) || S <= 0 || iv <= 0 || mesi <= 0)
@@ -1814,8 +1936,11 @@ function calcSigs() {
   const d = S >= 200 ? 0 : S >= 20 ? 1 : 2;
   const vega = function(k) { const e = 0.01; return (bsPut(S, k, T, sg + e, r) - bsPut(S, k, T, sg, r)) / e / S * 100; };
   let out = card("σ blend", nf(sg * 100, 1) + "%   (IV " + nf(iv, 1) + "% · HV " + nf(hw, 1) + "% · peso IV " + nf(ww * 100, 0) + "%)", "neutral");
-  const lst = S >= 15000 ? LISTINO_NDX : LISTINO_SPX;
-  const lstName = S >= 15000 ? "NDX 16/11" : "SPX 17/11";
+  const L = S >= 15000 ? LISTINI.NDX : LISTINI.SPX;      // NDX ~ 20-30 mila punti, S&P ~ 5-8 mila
+  const lst = L.righe;
+  const lstName = (S >= 15000 ? "NDX " : "SPX ") + L.data.slice(8, 10) + "/" + L.data.slice(5, 7);
+  const F = gFx();
+  const etaGG = Math.round((new Date(tkOggi() + "T00:00:00") - new Date(L.data + "T00:00:00")) / 864e5);
   out += '<table class="scen"><tr><th>Gradino</th><th>Fisso</th><th>σ</th><th>Media</th><th>Premio %<br>f · σ · m</th><th>Vega m</th><th>CW reale ' + lstName + '<br>K · prem%</th></tr>';
   let totF = 0, totS = 0, totM = 0;
   const ksM = [];
@@ -1835,7 +1960,7 @@ function calcSigs() {
       const dd = Math.abs(cw.k - kM);
       if (dd < bd) { bd = dd; best = cw; }
     });
-    const cwTxt = best ? nf(best.k, d) + " · " + nf(best.ask / (0.001 * S) * 100, 2) + "%" : "—";
+    const cwTxt = best && !isNaN(F) ? nf(best.k, d) + " · " + nf(best.ask * F / (L.multiplo * S) * 100, 2) + "%" : "—";
     out += "<tr><td>−" + n + "σ (" + f + "%)</td><td>" + nf(kF, d) + "</td><td>" + nf(kS, d) + "</td><td><b>" + nf(kM, d) + "</b></td><td>" + "f " + nf(pF, 2) + "<br>σ " + nf(pS, 2) + "<br><b>m " + nf(pM, 2) + "</b></td><td>" + nf(vega(kM), 2) + "</td><td>" + cwTxt + "</td></tr>";
   });
   out += "</table>";
@@ -1847,6 +1972,10 @@ function calcSigs() {
     scen += (scen ? " · " : "") + x[0] + "%: <b>" + nf(pay, 1) + "%</b>";
   });
   out += card("Payout scala MEDIA negli scenari (su S)", scen, "neutral");
+  out += card("Listino reale usato", L.nome + " del " + L.data.split("-").reverse().join("/") + " · " + etaGG + " giorni fa" +
+    (isNaN(F) ? " · <b>imposta il cambio nella barra valuta</b>" : F === 1 ? " · premi senza conversione (quanto o €)" : " · premi convertiti a 1 € = " + nf(F, 4) + " $"),
+    etaGG > 7 ? "neg" : "neutral");
+  if (etaGG > 7) out += card("⚠️ Listino vecchio", "i premi reali sono di " + etaGG + " giorni fa: usali solo come ordine di grandezza. Per decidere guarda il listino di oggi (o chiedi a Claude di aggiornarlo).", "neg");
   $("sgOut").innerHTML = out;
 }
 
@@ -1867,10 +1996,16 @@ function tkOggi() {
   var d = new Date();
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
-function tkVal(leg, S, dataISO) {
+function tkF(leg) { return leg.usd ? gFx() : 1; }          // put su indice in $ con CW non quanto: valuta → €
+function tkVal(leg, S, dataISO) {                              // valore teorico in € per 1 sottostante
   var gg = tkGG(dataISO, leg.scad);
-  if (gg <= 0) return Math.max(leg.k - S, 0);
-  return bsPut(S, leg.k, gg / 365, leg.iv / 100, 0.02);
+  var v = gg <= 0 ? Math.max(leg.k - S, 0) : bsPut(S, leg.k, gg / 365, leg.iv / 100, 0.02);
+  return v / tkF(leg);
+}
+function tkFlip(id) {
+  var leg = tkLoad().find(function(x) { return x.id === id; });
+  if (!leg) return;
+  leg.usd = !leg.usd; tkSave(); tkRender();
 }
 function tkAdd() {
   var nome = $("tkNome").value.trim(), s0 = num("tkS0"), k = num("tkK"),
@@ -1880,7 +2015,8 @@ function tkAdd() {
     return void ($("tkOut").innerHTML = err("Compila S, K, premio e IV (tutti > 0)."));
   if (!scad) return void ($("tkOut").innerHTML = err("Inserisci la scadenza dal KID."));
   if (tkGG(acq, scad) <= 0) return void ($("tkOut").innerHTML = err("La scadenza deve essere dopo l'acquisto."));
-  tkLoad().push({ id: Date.now(), nome: nome, s0: s0, k: k, prem: prem, iv: iv, dacq: acq, scad: scad, checks: [] });
+  if (gConv() && isNaN(gFx())) return void ($("tkOut").innerHTML = fxErr());
+  tkLoad().push({ id: Date.now(), nome: nome, s0: s0, k: k, prem: prem, iv: iv, dacq: acq, scad: scad, usd: gConv(), checks: [] });
   tkSave(); tkRender();
   ["tkNome", "tkS0", "tkK", "tkPrem", "tkIV", "tkScad"].forEach(function(id) { $(id).value = ""; });
 }
@@ -1888,10 +2024,13 @@ function tkUpdate(id) {
   var leg = tkLoad().find(function(x) { return x.id === id; });
   if (!leg) return;
   var S = parseFloat(String($("tkS" + id).value).replace(",", "."));
+  var M = parseFloat(String($("tkM" + id).value).replace(",", "."));
   if (isNaN(S) || S <= 0) return;
   var oggi = tkOggi(), v = tkVal(leg, S, oggi);
   leg.checks = leg.checks.filter(function(c) { return c.d !== oggi; });
-  leg.checks.push({ d: oggi, s: S, v: v });
+  var chk = { d: oggi, s: S, v: v };
+  if (!isNaN(M) && M > 0) chk.m = M;                           // prezzo reale (denaro CW × parità, in €)
+  leg.checks.push(chk);
   leg.checks.sort(function(a, b) { return a.d < b.d ? -1 : 1; });
   tkSave(); tkRender();
 }
@@ -1939,7 +2078,9 @@ function tkRender() {
     var ggRes = tkGG(oggi, leg.scad);
     var cLast = leg.checks.length ? leg.checks[leg.checks.length - 1] : null;
     var Sogg = cLast ? cLast.s : leg.s0;
-    var valOggi = tkVal(leg, Sogg, oggi);
+    var valMod = tkVal(leg, Sogg, oggi);
+    var reale = cLast && cLast.d === oggi && cLast.m > 0;     // il prezzo reale vale solo per il giorno in cui l'hai inserito
+    var valOggi = reale ? cLast.m : valMod;
     var resPct = valOggi / leg.prem * 100;
     var cls = resPct < 70 ? "rosso" : resPct <= 75 ? "giallo" : "verde";
     var verdetto = resPct < 70
@@ -1948,16 +2089,20 @@ function tkRender() {
         ? "GIALLO: ti avvicini al −30% — inizia a guardare le serie nuove per il roll"
         : "VERDE: la gamba respira — " + nf(resPct, 0) + "% del premio ancora in piedi";
     if (ggRes <= 0) verdetto = "SCADUTA: incassa o verifica l'esercizio con il broker";
-    var theta = valOggi - tkVal(leg, Sogg, isoAdd(oggi, -1));
+    var theta = valMod - tkVal(leg, Sogg, isoAdd(oggi, -1));
     var fine = ggRes <= 45 && ggRes > 0
       ? '<div class="det" style="color:#fbbf24;font-weight:700">⏱ ' + ggRes + ' giorni alla fine: finestra rolling dottrinale APERTA (4-6 settimane prima, mai alla scadenza vera)</div>' : "";
     out += '<div class="leg sem-' + cls + '">' +
       '<div class="tit"><span><b>' + leg.nome + '</b> · K ' + nf(leg.k, leg.k >= 200 ? 0 : 2) + ' · scad. ' + leg.scad + '</span><span>' + ggRes + ' gg</span></div>' +
       '<div class="big" style="color:' + (cls === "verde" ? "#4ade80" : cls === "giallo" ? "#fbbf24" : "#f87171") + '">' +
       (resPct >= 100 ? "+" : "") + nf(resPct - 100, 1) + '% dal premio <span style="font-size:13px;font-weight:400"> · uscita recupera ' + nf(resPct, 0) + '%</span></div>' +
-      '<div class="det">valore oggi ' + nf(valOggi, 4) + ' · premio ' + nf(leg.prem, 4) + ' · IV bloccata ' + nf(leg.iv, 1) + '% · tempo bruciato oggi: ' + (theta <= 0 ? "" : "+") + nf(theta, 4) + '</div>' +
+      '<div class="det">valore oggi ' + nf(valOggi, 4) + ' € ' + (reale ? '<b style="color:#4ade80">(prezzo reale di oggi)</b>' : '(teorico, IV bloccata ' + nf(leg.iv, 1) + '%)') +
+      (reale ? ' · teorico ' + nf(valMod, 4) + ' €' : '') + ' · premio ' + nf(leg.prem, 4) + ' € · tempo bruciato oggi: ' + (theta <= 0 ? "" : "+") + nf(theta, 4) + ' €</div>' +
+      '<div class="det">valuta: ' + (leg.usd ? 'indice in $, CW non quanto (convertito a 1 € = ' + nf(gFx(), 4) + ' $)' : 'indice in € o CW quanto') +
+      ' · <a href="#" onclick="tkFlip(' + leg.id + ');return false">cambia</a></div>' +
       '<div class="det" style="color:' + (cls === "verde" ? "#4ade80" : cls === "giallo" ? "#fbbf24" : "#f87171") + ';font-weight:700">' + verdetto + '</div>' + fine +
-      '<div class="row"><input id="tkS' + leg.id + '" type="number" inputmode="decimal" value="' + Sogg + '" />' +
+      '<div class="row"><input id="tkS' + leg.id + '" type="number" inputmode="decimal" value="' + Sogg + '" title="indice oggi" placeholder="indice oggi" />' +
+      '<input id="tkM' + leg.id + '" type="number" inputmode="decimal" placeholder="denaro CW × parità (€) — facolt." title="prezzo reale" /></div><div class="row">' +
       '<button onclick="tkUpdate(' + leg.id + ')">Aggiorna</button>' +
       '<button class="del" onclick="tkDel(' + leg.id + ')">Elimina</button></div>' +
       tkSpark(leg, oggi, Sogg, valOggi, resPct) +
@@ -2122,6 +2267,44 @@ function btryChartDraw(b) {
 document.addEventListener("DOMContentLoaded", function() { btryApplyLock(); btryRender(); });
 
 
+
+/* ---------- Backup: esporta / importa i dati salvati sul dispositivo ---------- */
+const BK_KEYS = ["putTrackerV1", "bondTryV1", "bondTryLock", "calcFxV1"];
+function bkExport() {
+  const dati = { app: "CALCOLATORI", versione: 1, creato: new Date().toISOString(), chiavi: {} };
+  BK_KEYS.forEach(function(k) { try { const v = localStorage.getItem(k); if (v !== null) dati.chiavi[k] = v; } catch (e) {} });
+  const n = Object.keys(dati.chiavi).length;
+  if (!n) return void ($("bkOut").innerHTML = err("Nessun dato da salvare su questo dispositivo."));
+  const blob = new Blob([JSON.stringify(dati, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "calcolatori-backup-" + tkOggi() + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function() { URL.revokeObjectURL(a.href); }, 4000);
+  $("bkOut").innerHTML = card("Backup creato", n + " archivi · " + a.download, "pos");
+}
+function bkImport(inp) {
+  const f = inp.files && inp.files[0];
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = function() {
+    let d;
+    try { d = JSON.parse(rd.result); } catch (e) { d = null; }
+    if (!d || d.app !== "CALCOLATORI" || !d.chiavi) return void ($("bkOut").innerHTML = err("Il file non è un backup di CALCOLATORI."));
+    const ks = Object.keys(d.chiavi).filter(function(k) { return BK_KEYS.indexOf(k) >= 0; });
+    if (!confirm("Ripristinare il backup del " + String(d.creato).slice(0, 10) + "? I dati attuali di " + ks.length + " archivi verranno sostituiti.")) return;
+    ks.forEach(function(k) { try { localStorage.setItem(k, d.chiavi[k]); } catch (e) {} });
+    location.reload();
+  };
+  rd.readAsText(f);
+  inp.value = "";
+}
+
+/* ---------- Avvio: ultima tab aperta + funzionamento offline ---------- */
+showTab(lsGet("calcTabV1", "istruzioni"));
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  window.addEventListener("load", function() { navigator.serviceWorker.register("sw.js").catch(function() {}); });
+}
 </script>
 </body>
 </html>
