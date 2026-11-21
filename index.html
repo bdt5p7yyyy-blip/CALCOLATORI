@@ -298,8 +298,8 @@
 <section id="istruzioni" class="active">
   <h2>💾 Backup dei dati</h2>
   <div class="note" style="border-left-color:#4ade80">
-    Tracker delle put, Bond TRY e impostazioni del cambio sono salvati <b>solo su questo dispositivo</b>.
-    Esporta un file di backup ogni tanto (e prima di cambiare telefono): con <b>Importa</b> lo ripristini su qualunque dispositivo.
+    Tracker delle put, Bond TRY e impostazioni del cambio restano <b>solo su questo dispositivo</b>.
+    Esporta un backup ogni tanto e prima di cambiare telefono; con <b>Importa</b> lo ripristini ovunque.
   </div>
   <div class="backup">
     <button class="btn" onclick="bkExport()">⬇️ Esporta backup</button>
@@ -308,25 +308,16 @@
   </div>
   <div class="results" id="bkOut"></div>
 
-  <h2 style="margin-top:22px">📲 Installazione e aggiornamenti</h2>
+  <h2 style="margin-top:22px">📲 Installazione</h2>
   <div class="note">
-    Su iPhone: apri la pagina in <b>Safari</b> → Condividi → <b>Aggiungi alla schermata Home</b>. L'app funziona anche <b>senza connessione</b>.
-    Quando c'è rete scarica da sola l'ultima versione pubblicata: se non la vedi subito, chiudi e riapri l'app.
+    Safari → Condividi → <b>Aggiungi alla schermata Home</b>. Funziona anche offline; con la rete si aggiorna da sola
+    (se non vedi l'ultima versione, chiudi e riapri l'app).
   </div>
 
-  <h2 style="margin-top:22px">🔑 Istruzioni GitHub — dare a Vibe il permesso di pubblicare</h2>
+  <h2 style="margin-top:22px">🤖 Modifiche con Claude</h2>
   <div class="note" style="border-left-color:#f472b6">
-    <b>1.</b> Apri <a href="https://github.com/settings/personal-access-tokens" target="_blank">github.com/settings/personal-access-tokens</a><br>
-    &nbsp;&nbsp;&nbsp;&nbsp;(GitHub → Settings → Developer settings → Fine-grained personal access tokens)<br>
-    <b>2.</b> <b>Generate new token</b> → nome es. "CALCOLATORI-pubblica" → durata breve (7–30 giorni)<br>
-    <b>3.</b> Repository access → <b>Only select repositories</b> → seleziona <b>CALCOLATORI</b><br>
-    <b>4.</b> Permissions → Repository permissions → <b>Contents → Read and write</b><br>
-    <b>5.</b> Generate token → copia la stringa <b>(si vede UNA volta sola)</b> e incollala nella chat con Vibe<br>
-    <b>6.</b> Vibe fa il commit, verifica il file byte per byte e pubblica su GitHub Pages<br>
-    <b>7.</b> Finito → <b>revoca il token</b> (Delete) dalla stessa pagina: il registro resta pulito
-  </div>
-  <div class="note">
-    Con <b>Claude</b> non serve il token: basta collegare GitHub una volta dalle impostazioni di claude.ai (Connettori) e installare l'app GitHub di Claude sul repository.
+    Chiedi a Claude la modifica in chat: la prepara, te la mostra e la pubblica su GitHub. Dopo 1–2 minuti è online.
+    Nessun token da creare o incollare: basta che GitHub resti collegato a Claude.
   </div>
 </section>
 
