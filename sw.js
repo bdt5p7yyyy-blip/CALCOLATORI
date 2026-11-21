@@ -2,7 +2,7 @@
    - pagina principale: prima la rete (così arriva subito l'ultima versione), se non c'è rete la copia salvata;
    - icone e manifest: prima la copia salvata.
    Alzare VERSIONE quando si cambia l'elenco dei file. */
-const VERSIONE = "calcolatori-v1";
+const VERSIONE = "calcolatori-v2";
 const FILE = ["./", "./index.html", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png", "./icons/icon-maskable-512.png"];
 

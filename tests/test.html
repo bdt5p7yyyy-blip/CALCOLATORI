@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Test CALCOLATORI</title>
+<style>
+  body { font: 14px/1.5 -apple-system, system-ui, sans-serif; background: #0b1220; color: #e2e8f0; margin: 0; padding: 16px; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  #sum { font-weight: 800; margin: 8px 0 14px; }
+  table { width: 100%; border-collapse: collapse; }
+  td, th { padding: 6px 8px; border-bottom: 1px solid #334155; text-align: left; vertical-align: top; }
+  .ok { color: #4ade80; } .ko { color: #f87171; }
+  iframe { width: 390px; height: 10px; border: 0; visibility: hidden; position: absolute; }
+</style>
+</head>
+<body>
+<h1>Test automatici di CALCOLATORI</h1>
+<div>Apre l'app in una finestra nascosta, compila i campi, lancia i calcoli e confronta i risultati con valori calcolati a parte.
+I dati salvati dall'app su questo dispositivo vengono messi da parte e ripristinati alla fine.</div>
+<div id="sum">In corso…</div>
+<table><thead><tr><th>Esito</th><th>Prova</th><th>Atteso</th><th>Ottenuto</th></tr></thead><tbody id="rows"></tbody></table>
+<iframe id="app" src="../index.html"></iframe>
+<script>
+{
+  const rows = document.getElementById("rows");
+  let ok = 0, ko = 0;
+  const KEYS = ["putTrackerV1", "bondTryV1", "bondTryLock", "calcFxV1", "calcTabV1", "calcGrpTabV1"];
+  const saved = {};
+  KEYS.forEach(k => { try { saved[k] = localStorage.getItem(k); localStorage.removeItem(k); } catch (e) {} });
+  const restore = () => KEYS.forEach(k => { try { saved[k] === null ? localStorage.removeItem(k) : localStorage.setItem(k, saved[k]); } catch (e) {} });
+
+  const iso = d => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const oggi = new Date(); oggi.setHours(0, 0, 0, 0);
+  const tra = gg => { const d = new Date(oggi); d.setDate(d.getDate() + gg); return iso(d); };
+  const traAnni = a => { const d = new Date(oggi); d.setFullYear(d.getFullYear() + a); return iso(d); };
+  const itNum = t => parseFloat(t.replace(/\./g, "").replace(",", ".").replace("−", "-"));
+
+  function riga(esito, nome, atteso, ottenuto) {
+    esito ? ok++ : ko++;
+    rows.insertAdjacentHTML("beforeend", "<tr><td class='" + (esito ? "ok'>✔" : "ko'>✘") + "</td><td>" + nome + "</td><td>" + atteso + "</td><td>" + ottenuto + "</td></tr>");
+  }
+
+  document.getElementById("app").addEventListener("load", function () {
+    const w = this.contentWindow, $ = id => w.document.getElementById(id);
+    const set = o => Object.keys(o).forEach(k => { const e = $(k); e.value = String(o[k]); e.dispatchEvent(new w.Event("input")); e.dispatchEvent(new w.Event("change")); });
+    // legge il numero che segue un'etichetta nel risultato
+    const leggi = (out, etichetta) => {
+      const t = $(out).innerText, i = t.indexOf(etichetta);
+      if (i < 0) return NaN;
+      const m = t.slice(i + etichetta.length).match(/[−-]?[\d.]+(,\d+)?/);
+      return m ? itNum(m[0]) : NaN;
+    };
+    const vicino = (nome, out, etichetta, atteso, tol) => {
+      let v; try { v = leggi(out, etichetta); } catch (e) { v = NaN; }
+      riga(Math.abs(v - atteso) <= tol, nome, atteso + " ± " + tol, isNaN(v) ? "non trovato" : v);
+    };
+    const prova = (nome, fn) => { try { fn(); } catch (e) { riga(false, nome, "nessun errore", String(e)); } };
+    const base = { gCcy: "EUR", gQuanto: "no", gFxRate: 1.15, gR: 2, gQ: 0 };
+
+    prova("IV", () => {
+      set(base); set({ ivTipo: "put", ivS: 27600, ivK: 26200, ivP: 1000, ivScad: tra(60), ivPrem: 0.653, ivRef: "" });
+      w.calcIVS(); vicino("IV put NDX, sottostante in €", "ivOut", "IV IMPLICITA", 29.00, 0.05);
+      set({ gCcy: "USD" }); w.calcIVS(); vicino("IV con cambio 1,15 (non quanto)", "ivOut", "IV IMPLICITA", 31.51, 0.05);
+      set({ gQ: 1.3 }); w.calcIVS(); vicino("IV con cambio e dividendo 1,3%", "ivOut", "IV IMPLICITA", 31.04, 0.05);
+      set({ gQuanto: "si", gQ: 0 }); w.calcIVS(); vicino("IV CW quanto = come in €", "ivOut", "IV IMPLICITA", 29.00, 0.05);
+    });
+    prova("Payoff", () => {
+      set(base); set({ pTipo: "call", pVerso: "buy", pStrike: 100, pPremio: 2.5, pParita: 1, pNum: 100, pS: 110, pMolt: 1, pFx: "no" });
+      w.calcPayoff(); vicino("Payoff call in € (classico)", "pOut", "P&L totale a scadenza", 750, 0.01);
+      set({ gCcy: "USD", pTipo: "put", pStrike: 26200, pPremio: 0.5, pParita: 1000, pS: 25000 });
+      w.calcPayoff(); vicino("Payoff put NDX convertito in €", "pOut", "Valore intrinseco per strumento", 1.0435, 0.0001);
+    });
+    prova("Hedge", () => {
+      set(base); set({ gCcy: "USD", hX: 50000, hS0: 27600, hK: 24000, hPrem: 0.9, hP: 1000, hProt: 100 });
+      w.calcHedge(); vicino("Hedge: put da comprare con cambio", "hOut", "Put da comprare (esatto)", 2083.33, 0.01);
+    });
+    prova("Costo", () => {
+      set(base); set({ gCcy: "USD", cPrem: 0.653, cP: 1000, costoS: 27600, cGG: 60, costoCap: "" });
+      w.calcCosto(); vicino("Costo annuo con cambio", "costoOut", "COSTO ANNUALIZZATO", 16.55, 0.01);
+    });
+    prova("Obbligazioni", () => {
+      set({ oMode: "ytm", oNom: 1000, oCed: 4, oCedTipo: "pct", oPrezzo: 95, oPrezzoTipo: "pct", oConv: "tq", oScad: traAnni(5), oExit: 100, oFreq: 1, oTax: 12.5 });
+      w.calcBond(); vicino("YTM lorda, cedola annuale", "oOut", "YTM composta lorda", 5.16, 0.02);
+      vicino("YTM netta 12,5%", "oOut", "YTM composta netta", 4.53, 0.02);
+      set({ oFreq: 2 }); w.calcBond(); vicino("YTM lorda, cedola semestrale", "oOut", "YTM composta lorda", 5.21, 0.02);
+      vicino("YTM netta semestrale", "oOut", "YTM composta netta", 4.57, 0.02);
+    });
+    prova("Confronto Bond", () => {
+      set({ cbAc: 4, cbAn: 4.5, cbAf: 2, cbAy: 5, cbAp: "", cbBc: 0, cbBn: 5, cbBf: 1, cbBy: 5, cbBp: "", cbShock: 1 });
+      w.calcCbond(); vicino("Prezzo bond 4,5 anni semestrale", "cbOut", "Prezzo (somma flussi scontati)", 96.25, 0.01);
+    });
+    prova("Scala Σ", () => {
+      set(base); set({ sgS: 27600, sgIv: 25, sgHv: 20, sgW: 50, sgMesi: 12 });
+      w.calcSigs(); vicino("Somma premi scala media", "sgOut", "sigma · ", 5.09, 0.02);
+      riga($("scOut").innerText.indexOf("19.320") >= 0, "Gradini fissi inclusi (−30% = 19.320)", "19.320", $("scOut").innerText.indexOf("19.320") >= 0 ? "presente" : "assente");
+    });
+    prova("Navigazione", () => {
+      w.showTab("scala"); riga(w.document.querySelector("main > section.active").id === "sigs", "Vecchia tab Scala porta a Scala Σ", "sigs", w.document.querySelector("main > section.active").id);
+      w.showTab("cal"); riga(w.document.querySelector("main > section.active").id === "lad", "Vecchia tab Calendario porta a Ladder", "lad", w.document.querySelector("main > section.active").id);
+    });
+
+    restore();
+    document.getElementById("sum").innerHTML = (ko ? "<span class='ko'>" : "<span class='ok'>") + ok + " prove superate, " + ko + " fallite</span>";
+    document.title = (ko ? "KO " : "OK ") + ok + "/" + (ok + ko);
+  });
+}
+</script>
+</body>
+</html>

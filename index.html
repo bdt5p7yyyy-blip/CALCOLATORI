@@ -66,11 +66,9 @@
   .tabs button[data-tab="bond"]   { --c: #e2e8f0; }
   .tabs button[data-tab="conf"]   { --c: #facc15; }
   .tabs button[data-tab="lad"]    { --c: #a3e635; }
-  .tabs button[data-tab="cal"]    { --c: #e879f9; }
   .tabs button[data-tab="ivs"]    { --c: #38bdf8; }
   .tabs button[data-tab="costo"]  { --c: #fb7185; }
   .tabs button[data-tab="duco"]   { --c: #14b8a6; }
-  .tabs button[data-tab="scala"]  { --c: #34d399; }
   .tabs button[data-tab="track"]  { --c: #f59e0b; }
   .tabs button[data-tab="btry"]   { --c: #c084fc; }
   .tabs button[data-tab="sigs"]   { --c: #fda4af; }
@@ -80,10 +78,15 @@
     background: rgba(96,165,250,0.10); border: 1px solid #1d4ed8;
     font-size: 13px; color: #cbd5e1; gap: 8px 12px; flex-wrap: wrap; align-items: center;
   }
-  .fxbar.on { display: flex; }
+  .fxbar.on { display: block; }
+  .fxsum { width: 100%; text-align: left; background: none; border: none; color: #93c5fd; font-size: 13px; font-weight: 700; cursor: pointer; padding: 2px 0; }
+  .fxsum::after { content: "  ✎ modifica"; color: #64748b; font-weight: 600; }
+  .fxbar.open .fxsum::after { content: "  ▲ chiudi"; }
+  .fxdet { display: none; margin-top: 8px; gap: 8px 12px; flex-wrap: wrap; align-items: center; }
+  .fxbar.open .fxdet { display: flex; }
   .fxbar label { display: inline; margin: 0 4px 0 0; font-size: 13px; }
   .fxbar select, .fxbar input { width: auto; padding: 7px 8px; font-size: 15px; border-radius: 8px; }
-  .fxbar input { width: 82px; }
+  .fxbar input { width: 76px; }
   .fxbar .info { flex-basis: 100%; font-size: 12px; color: #93c5fd; }
   .fxbar .info b { color: #fbbf24; }
   .backup { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
@@ -268,11 +271,9 @@
     <button data-group="cw" data-tab="ivs">IV implicita</button>
     <button data-group="cw" data-tab="costo">Costo annuo</button>
     <button data-group="cop" data-tab="hedge">Hedge</button>
-    <button data-group="cop" data-tab="scala">Scala</button>
     <button data-group="cop" data-tab="sigs">Scala Σ</button>
     <button data-group="cop" data-tab="track">Tracker</button>
     <button data-group="cop" data-tab="lad">Ladder</button>
-    <button data-group="cop" data-tab="cal">Calendario</button>
     <button data-group="cop" data-tab="buco">Riacquisto</button>
     <button data-group="bond" data-tab="bond">Obbligazioni</button>
     <button data-group="bond" data-tab="duco">Confronto Bond</button>
@@ -282,16 +283,21 @@
 </nav>
 <main>
 
-<!-- ================= VALUTA COMUNE AI TAB DEI CW ================= -->
+<!-- ================= BARRA MERCATO: valuta, cambio, tasso, dividendo ================= -->
 <div class="fxbar" id="fxBar">
-  <span><label for="gCcy">Sottostante in</label><select id="gCcy" onchange="gFxSave()">
-    <option value="EUR">€ (FTSE MIB, DAX, Euro Stoxx)</option>
-    <option value="USD">$ (Nasdaq-100, S&amp;P 500)</option></select></span>
-  <span id="gUsdBox"><label for="gQuanto">CW quanto?</label><select id="gQuanto" onchange="gFxSave()">
-    <option value="no">No</option><option value="si">Sì</option></select></span>
-  <span id="gFxBox"><label for="gFxRate">1 € =</label><input id="gFxRate" type="number" inputmode="decimal" step="0.0001" value="1.12" oninput="gFxSave()" /> $
-    <a href="https://www.google.com/finance/quote/EUR-USD" target="_blank">live ↗</a></span>
-  <span class="info" id="gFxInfo"></span>
+  <button type="button" class="fxsum" id="gSum" onclick="gToggle()" aria-expanded="false"></button>
+  <div class="fxdet" id="gDet">
+    <span><label for="gCcy">Sottostante in</label><select id="gCcy" onchange="gFxSave()">
+      <option value="EUR">€ (FTSE MIB, DAX, Euro Stoxx)</option>
+      <option value="USD">$ (Nasdaq-100, S&amp;P 500)</option></select></span>
+    <span id="gUsdBox"><label for="gQuanto">CW quanto?</label><select id="gQuanto" onchange="gFxSave()">
+      <option value="no">No</option><option value="si">Sì</option></select></span>
+    <span id="gFxBox"><label for="gFxRate">1 € =</label><input id="gFxRate" type="number" inputmode="decimal" step="0.0001" value="1.12" oninput="gFxSave()" /> $
+      <a href="https://www.google.com/finance/quote/EUR-USD" target="_blank">live ↗</a></span>
+    <span><label for="gR">Tasso %</label><input id="gR" type="number" inputmode="decimal" step="0.1" value="2" oninput="gFxSave()" /></span>
+    <span><label for="gQ">Dividendo indice %</label><input id="gQ" type="number" inputmode="decimal" step="0.1" value="0" oninput="gFxSave()" /></span>
+    <span class="info" id="gFxInfo"></span>
+  </div>
 </div>
 
 <!-- ================= ISTRUZIONI GITHUB ================= -->
@@ -494,6 +500,10 @@
     <div><label for="oYld">Rendimento desiderato (%)</label><input id="oYld" type="number" inputmode="decimal" placeholder="es. 4.5" /></div>
     <div><label for="oScad">Data di scadenza</label><input id="oScad" type="date" /></div>
     <div><label for="oExit">Valore finale incassato (% nominale)</label><input id="oExit" type="number" inputmode="decimal" placeholder="es. 100" /></div>
+    <div><label for="oFreq">Cedola pagata</label>
+      <select id="oFreq"><option value="1">annuale</option><option value="2">semestrale (es. BTP)</option></select></div>
+    <div><label for="oTax">Tassazione</label>
+      <select id="oTax"><option value="12.5">12,5% (titoli di Stato, white list, sovranazionali)</option><option value="26">26% (corporate)</option><option value="0">solo lordo</option></select></div>
   </div>
   <button class="btn" onclick="calcBond()">Calcola</button>
   <div class="results" id="oOut"></div>
@@ -574,7 +584,7 @@
 </section>
 <!-- ================= LADDER DOCTOR ================= -->
 <section id="lad">
-  <h2>Ladder Doctor — cricchetto e strike stantii</h2>
+  <h2>Ladder — cricchetto e strike stantii</h2>
   <div class="grid">
     <div><label for="ldR">Livello indice all'ultimo rinnovo (strike-setting)</label><input id="ldR" type="number" inputmode="decimal" placeholder="es. 17231" /></div>
     <div><label for="ldS">Indice attuale</label><input id="ldS" type="number" inputmode="decimal" placeholder="es. 18500" /></div>
@@ -596,10 +606,8 @@
     Staleness = quanto lo strike si è allontanato DAL MASSIMO rispetto al livello del rinnovo: la distanza dichiarata è quella dal rinnovo, quella che conta nel crash è dal massimo.
     Se il massimo è lasciato vuoto si usa l'indice attuale (nessun melt-up in corso).
   </div>
-</section>
-<!-- ================= CALENDARIO RINNOVI LADDER ================= -->
-<section id="cal">
-  <h2>Calendario Rinnovi — cosa rinnovo e quando</h2>
+<div id="cal">
+  <h2 style="margin-top:24px">Calendario rinnovi — cosa rinnovo e quando</h2>
   <div class="grid">
     <div><label for="calS">Indice attuale</label><input id="calS" type="number" inputmode="decimal" placeholder="es. 18500" /></div>
     <div><label for="calDate">Data di riferimento (vuoto = oggi)</label><input id="calDate" type="date" /></div>
@@ -618,6 +626,7 @@
     Strike freschi = −15% e −30% dall'indice attuale: il confronto col vecchio strike dice quanto si è spostato il mercato da quando l'hai comprata.
     Se le due scadenze sono troppo vicine (meno di 3 mesi di sfasamento) le tranci non sono scaglionate: rischio di rinegoziare tutto insieme.
   </div>
+</div>
 </section>
 
 <!-- ================= IV IMPLICITA (BS INVERSA) ================= -->
@@ -637,7 +646,7 @@
   <div class="results" id="ivOut"></div>
   <div class="note">
     Tutto quello che serve, niente di più: dal <b>KID</b> prendi tipo, strike, parità e data di scadenza; dal <b>broker</b> il prezzo del sottostante e la Lettera del CW.
-    tasso 2% e dividendo 0 fissi internamente (per le put di protezione contano poco). La IV è la volatilità che rende il premio quotato uguale al valore teorico:
+    Tasso e dividendo si impostano nella barra mercato in alto (ordini di grandezza da verificare: S&amp;P 500 ~1,3%, Nasdaq-100 ~0,7%, Euro Stoxx 50 ~3%). La IV è la volatilità che rende il premio quotato uguale al valore teorico:
     confrontala col VXN/VIX — entro 2 punti = prezzo onesto; molto sopra = paura a pagamento extra.
   </div>
 </section>
@@ -669,12 +678,14 @@
   <div class="grid">
     <div class="full" style="margin-top:6px"><b>Bond A</b></div>
     <div><label for="cbAc">Cedola annua A (%)</label><input id="cbAc" type="number" inputmode="decimal" placeholder="es. 4" /></div>
-    <div><label for="cbAn">Anni alla scadenza A</label><input id="cbAn" type="number" inputmode="numeric" placeholder="es. 5" /></div>
+    <div><label for="cbAn">Anni alla scadenza A</label><input id="cbAn" type="number" inputmode="decimal" step="any" placeholder="es. 4,5" /></div>
+    <div><label for="cbAf">Cedola A pagata</label><select id="cbAf"><option value="1">annuale</option><option value="2">semestrale</option></select></div>
     <div><label for="cbAy">Rendimento A (%) — <i>oppure lascia vuoto e usa il prezzo</i></label><input id="cbAy" type="number" inputmode="decimal" placeholder="es. 5" /></div>
     <div class="full"><label for="cbAp">Prezzo A tel quel dal broker (%) — se compilato vince sul rendimento</label><input id="cbAp" type="number" inputmode="decimal" placeholder="es. 95,67" /></div>
     <div class="full" style="margin-top:6px"><b>Bond B</b></div>
     <div><label for="cbBc">Cedola annua B (%)</label><input id="cbBc" type="number" inputmode="decimal" placeholder="es. 0" /></div>
-    <div><label for="cbBn">Anni alla scadenza B</label><input id="cbBn" type="number" inputmode="numeric" placeholder="es. 5" /></div>
+    <div><label for="cbBn">Anni alla scadenza B</label><input id="cbBn" type="number" inputmode="decimal" step="any" placeholder="es. 5" /></div>
+    <div><label for="cbBf">Cedola B pagata</label><select id="cbBf"><option value="1">annuale</option><option value="2">semestrale</option></select></div>
     <div><label for="cbBy">Rendimento B (%) — <i>oppure lascia vuoto e usa il prezzo</i></label><input id="cbBy" type="number" inputmode="decimal" placeholder="es. 5" /></div>
     <div class="full"><label for="cbBp">Prezzo B tel quel dal broker (%) — se compilato vince sul rendimento</label><input id="cbBp" type="number" inputmode="decimal" placeholder="es. 100" /></div>
     <div class="full"><label for="cbShock">Shock dei tassi (punti % — in giù = negativo)</label><input id="cbShock" type="number" inputmode="decimal" value="1" /></div>
@@ -682,30 +693,15 @@
   <button class="btn" onclick="calcCbond()">Confronta i due bond</button>
   <div class="results" id="cbOut"></div>
   <div class="note">
-    La meccanica del libro <b>Bond: la matematica del prezzo</b>: il prezzo è la somma dei flussi scontati (convenzione annuale, rimborso 100), la duration Macaulay è il baricentro dei flussi, la <b>duration modificata</b> è "quanto % perde il prezzo se i tassi salgono dell'1%", la <b>convessità</b> è la correzione sempre a tuo favore (½·C·Δy²).
+    La meccanica del libro <b>Bond: la matematica del prezzo</b>: il prezzo è la somma dei flussi scontati (sconto annuo effettivo, cedola annuale o semestrale, rimborso 100), la duration Macaulay è il baricentro dei flussi, la <b>duration modificata</b> è "quanto % perde il prezzo se i tassi salgono dell'1%", la <b>convessità</b> è la correzione sempre a tuo favore (½·C·Δy²).
     Confronto onesto tra due bond: mai sulla scadenza, sempre su D* (e C, se il confronto è serio). Zero coupon: duration = durata. E ricorda: le due stime differiscono perché la curva sta sopra la tangente — quella con convessità più alta recupera più punti nei movimenti grossi.
   </div>
 </section>
 
-<!-- ================= SCALA STRIKE ================= -->
-<section id="scala">
-  <h2>Scala Strike — la discesa a gradini dal sottostante a −30%</h2>
-  <div class="grid">
-    <div><label for="scS">Sottostante S (prezzo attuale)</label><input id="scS" type="number" inputmode="decimal" placeholder="es. 656.10" /></div>
-  </div>
-  <button class="btn" onclick="calcScala()">Costruisci la scala</button>
-  <div class="results" id="scOut"></div>
-  <div class="note">
-    I gradini di casa: <b>−2% alla volta fino a −10%</b> (le correzioni brevi), poi <b>−5% fino a −30%</b> (franchigia seria e incendi).
-    Oltre −30% non ha senso: le put profonde costano briciole e la franchigia non cambia — il diluvio lo copre già la trancia ★−30%.
-    Le due righe verdi con ★ sono <b>le franchigie della ladder</b> (−15% e −30%): gli ancoraggi del rinnovo.
-    Strike arrotondati in modo sensato: interi sopra 200, un decimale tra 20 e 200, due decimali sotto 20 — poi è l'emittente che decide i tagli veri del listino.
-  </div>
-</section>
 
 <!-- ================= SCALA SIGMA ================= -->
 <section id="sigs">
-  <h2>Scala Σ — media tra ladder fissa (−10…−30 a passi di 5) e strike sigma</h2>
+  <h2>Scala Σ — strike fissi (franchigia), strike sigma e la media</h2>
   <div class="grid">
     <div><label for="sgS">Sottostante S (prezzo attuale)</label><input id="sgS" type="number" inputmode="decimal" placeholder="es. 24000" /></div>
     <div><label for="sgIv">IV implicita % (da quotazione CW)</label><input id="sgIv" type="number" inputmode="decimal" placeholder="es. 22" /></div>
@@ -715,6 +711,14 @@
   </div>
   <button class="btn" onclick="calcSigs()">Costruisci scala σ + media</button>
   <div class="results" id="sgOut"></div>
+  <h2 style="font-size:16px;margin-top:20px">Gradini fissi da S a −30%</h2>
+  <div class="results" id="scOut"></div>
+  <div class="note">Basta il prezzo S: i gradini compaiono anche senza IV. 
+    I gradini di casa: <b>−2% alla volta fino a −10%</b> (le correzioni brevi), poi <b>−5% fino a −30%</b> (franchigia seria e incendi).
+    Oltre −30% non ha senso: le put profonde costano briciole e la franchigia non cambia — il diluvio lo copre già la trancia ★−30%.
+    Le due righe verdi con ★ sono <b>le franchigie della ladder</b> (−15% e −30%): gli ancoraggi del rinnovo.
+    Strike arrotondati in modo sensato: interi sopra 200, un decimale tra 20 e 200, due decimali sotto 20 — poi è l'emittente che decide i tagli veri del listino.
+  </div>
   <div class="note" style="color:#f87171;font-size:18px;font-weight:800;line-height:1.5;border-left-color:#f87171">
     ⚠️ REGOLA DEL CRICCHETTO: se S sale oltre <b>+8%</b> dal livello di strike-setting, compra subito la generazione nuova.
   </div>
@@ -789,10 +793,11 @@ function card(k, v, cls) {
 function err(msg) { return '<div class="card"><span class="k" style="color:#f87171">' + msg + '</span></div>'; }
 
 /* ---------- Navigazione a gruppi ---------- */
-const FX_TABS = ["payoff", "strat", "conf", "ivs", "costo", "hedge", "track"];
+const FX_TABS = ["payoff", "strat", "conf", "ivs", "costo", "hedge", "track", "sigs"];
 function lsGet(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
 function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 function showTab(tab) {
+  tab = ({ scala: "sigs", cal: "lad" })[tab] || tab;     // tab unite
   const btn = document.querySelector('.tabs button[data-tab="' + tab + '"]') || document.querySelector(".tabs button");
   const grp = btn.dataset.group;
   document.querySelectorAll(".groups button").forEach(x => x.classList.toggle("active", x.dataset.group === grp));
@@ -819,6 +824,15 @@ function gFx() {
   const v = parseFloat(String($("gFxRate").value).replace(",", "."));
   return v > 0 ? v : NaN;
 }
+function gNum(id, d) { const v = parseFloat(String($(id).value).replace(",", ".")); return isNaN(v) ? d : v; }
+function gR() { return gNum("gR", 2) / 100; }                 // tasso privo di rischio, uguale per tutti i calcoli
+function gQ() { return gNum("gQ", 0) / 100; }                 // rendimento da dividendi dell'indice
+function gToggle() { const o = $("fxBar").classList.toggle("open"); $("gSum").setAttribute("aria-expanded", o); }
+function gSummary() {
+  const usd = $("gCcy").value === "USD";
+  $("gSum").textContent = (usd ? "$ · " + (gConv() ? "non quanto · 1 € = " + String($("gFxRate").value).replace(".", ",") + " $" : "quanto") : "€")
+    + " · tasso " + nf(gR() * 100, 1) + "% · dividendo " + nf(gQ() * 100, 1) + "%";
+}
 function gFxInfo() {
   const usd = $("gCcy").value === "USD";
   $("gUsdBox").style.display = usd ? "" : "none";
@@ -828,14 +842,19 @@ function gFxInfo() {
     : !gConv() ? "CW quanto: 1 punto = 1 €, nessuna conversione."
     : isNaN(f) ? "<b>Inserisci il cambio EUR/USD.</b>"
     : "Conversione attiva: premio € × <b>" + nf(f, 4) + "</b> = premio in $ · rimborso $ ÷ " + nf(f, 4) + " = rimborso in €.";
+  $("gFxInfo").innerHTML += " Tasso e dividendo valgono per IV implicita, Tracker e Scala Σ.";
+  gSummary();
 }
 function gFxSave() {
-  lsSet("calcFxV1", { ccy: $("gCcy").value, quanto: $("gQuanto").value, fx: $("gFxRate").value });
+  lsSet("calcFxV1", { ccy: $("gCcy").value, quanto: $("gQuanto").value, fx: $("gFxRate").value, r: $("gR").value, q: $("gQ").value });
   gFxInfo();
 }
 (function gFxLoad() {
   const m = lsGet("calcFxV1", null);
-  if (m) { $("gCcy").value = m.ccy || "EUR"; $("gQuanto").value = m.quanto || "no"; if (m.fx) $("gFxRate").value = m.fx; }
+  if (m) {
+    $("gCcy").value = m.ccy || "EUR"; $("gQuanto").value = m.quanto || "no";
+    if (m.fx) $("gFxRate").value = m.fx; if (m.r) $("gR").value = m.r; if (m.q) $("gQ").value = m.q;
+  }
   gFxInfo();
 })();
 function fxErr() { return err("Barra valuta: inserisci il cambio EUR/USD (> 0) oppure scegli sottostante in € / CW quanto."); }
@@ -1441,29 +1460,41 @@ function calcBond() {
     const capInv = $("oPrezzoTipo").value === "pct" ? nom * pz / 100 : pz;
     const exitV = num("oExit");
     const uscita = nom * (isNaN(exitV) || exitV <= 0 ? 100 : exitV) / 100;
-    // cedole ancora da incassare: una per ogni anniversario della scadenza successivo a oggi
-    // (prima era ceil(anni): con anni = 5,003 per un giorno bisestile contava 6 cedole invece di 5)
+    const freq = +$("oFreq").value || 1, mesi = 12 / freq, cp = cedEur / freq;   // cedola per periodo
+    const tax = (+$("oTax").value || 0) / 100;
+    // date cedola: dalla scadenza indietro di 12 o 6 mesi, finché sono dopo oggi
+    const dataCed = k => { const d = new Date(scadB); d.setMonth(scadB.getMonth() - k * mesi); return d; };
     let nCed = 0;
-    while (nCed < 200) { const d = new Date(scadB); d.setFullYear(scadB.getFullYear() - nCed); if (d > oggiB) nCed++; else break; }
-    const tq = $("oConv").value !== "clean";            // tel quel: rateo gia' nel prezzo -> cedole intere
-    const cedoleTot = cedEur * (tq ? nCed : anni);
+    while (nCed < 400 && dataCed(nCed) > oggiB) nCed++;
+    const prev = dataCed(nCed), next = dataCed(nCed - 1);
+    const fracAcc = Math.min(Math.max((oggiB - prev) / (next - prev), 0), 1);   // quota del periodo già maturata (rateo)
+    const tq = $("oConv").value !== "clean";            // tel quel: rateo già nel prezzo
+    const rateo = cp * fracAcc;
+    const sporco = tq ? capInv : capInv + rateo;        // prezzo effettivamente pagato
+    const pulito = tq ? capInv - rateo : capInv;
+    const tCed = []; for (let k = 0; k < nCed; k++) tCed.push((dataCed(k) - oggiB) / 864e5 / 365.25);
+    const cedoleTot = tq ? cp * nCed : cedEur * anni;
     const ytmLin = (cedoleTot + uscita - capInv) / capInv / anni * 100;
     const cedEq = cedEur / capInv * 100;                      // la rendita: cedola annua sul capitale investito
     const costPremio = (uscita - capInv) / capInv / anni * 100;  // il costo del premio annualizzato (negativo se sopra par)
-    // YTM composta (come Confronto Bond): flussi scontati con cedole annuali; la prossima cedola cade tra (anni − nCed + 1) anni.
-    // Con prezzo pulito si aggiunge il rateo stimato: cedola × frazione d'anno già trascorsa (nCed − anni).
-    const sporco = tq ? capInv : capInv + cedEur * (nCed - anni);
-    const pv = y => { let v = uscita / Math.pow(1 + y, anni); for (let k = 0; k < nCed; k++) v += cedEur / Math.pow(1 + y, anni - k); return v; };
-    let lo = -0.99, hi = 10;
-    for (let i = 0; i < 100; i++) { const mid = (lo + hi) / 2; (pv(mid) > sporco) ? lo = mid : hi = mid; }
-    const ytmComp = (lo + hi) / 2 * 100;
+    // YTM composta = tasso annuo effettivo che rende i flussi scontati uguali al prezzo pagato
+    const irr = (cedola, finale) => {
+      const pv = y => { let v = finale / Math.pow(1 + y, anni); tCed.forEach(t => v += cedola / Math.pow(1 + y, t)); return v; };
+      let lo = -0.99, hi = 10;
+      for (let i = 0; i < 100; i++) { const mid = (lo + hi) / 2; (pv(mid) > sporco) ? lo = mid : hi = mid; }
+      return (lo + hi) / 2 * 100;
+    };
+    const ytmComp = irr(cp, uscita);
+    const plus = Math.max(uscita - pulito, 0);          // guadagno in conto capitale (rimborso sopra il prezzo pulito)
+    const ytmNet = irr(cp * (1 - tax), uscita - plus * tax);
+    const dim = t => " <span style='font-weight:400;font-size:11px;opacity:.7'>" + t + "</span>";
     $("oOut").innerHTML =
-      card("<b>YTM composta</b>", "<b>" + nf(ytmComp) + " % p.a.</b> <span style='font-weight:400;font-size:11px;opacity:.7'>flussi scontati, cedola annuale, " +
-        nf(anni, 2) + " anni" + (tq ? ", prezzo tel quel" : ", prezzo pulito + rateo stimato") + " — stesso metodo di Confronto Bond</span>", ytmComp >= 0 ? "pos" : "neg") +
-      card("YTM lineare (confronto)", nf(ytmLin) + " % p.a. <span style='font-weight:400;font-size:11px;opacity:.7'>" +
-        (tq ? "tel quel, " + (nCed === 1 ? "1 cedola intera" : nCed + " cedole intere") : "quotazione pulita, cedole pro-rata") + " — approssimazione semplice</span>", ytmLin >= 0 ? "pos" : "neg") +
-      card("<b>CEDOLA EQUIVALENTE sul capitale investito</b>", "<b>" + nf(cedEq) + " %</b> <span style='font-weight:400;font-size:11px;opacity:.7'>= cedola annua ÷ prezzo pagato — la rendita pura</span>", "pos") +
-      card("Cedole che incasserai", nf(cedoleTot) + " € <span style='font-weight:400;font-size:11px;opacity:.7'>" + (tq ? (nCed === 1 ? "1 cedola intera" : nCed + " cedole intere") : "pro-rata") + "</span>", "neutral") +
+      card("<b>YTM composta lorda</b>", "<b>" + nf(ytmComp) + " % p.a.</b>" + dim("tasso annuo effettivo, cedola " + (freq === 2 ? "semestrale" : "annuale") + ", " +
+        nf(anni, 2) + " anni" + (tq ? ", prezzo tel quel" : ", prezzo pulito + rateo") + " — stesso metodo di Confronto Bond"), ytmComp >= 0 ? "pos" : "neg") +
+      (tax > 0 ? card("<b>YTM composta netta</b>", "<b>" + nf(ytmNet) + " % p.a.</b>" + dim("stima al " + nf(tax * 100, 1) + "% su cedole e plusvalenza a scadenza"), ytmNet >= 0 ? "pos" : "neg") : "") +
+      card("YTM lineare (confronto)", nf(ytmLin) + " % p.a." + dim((tq ? "tel quel, " + nCed + (nCed === 1 ? " cedola intera" : " cedole intere") : "quotazione pulita, cedole pro-rata") + " — approssimazione semplice"), ytmLin >= 0 ? "pos" : "neg") +
+      card("<b>CEDOLA EQUIVALENTE sul capitale investito</b>", "<b>" + nf(cedEq) + " %</b>" + dim("= cedola annua ÷ prezzo pagato — lorda" + (tax > 0 ? "; netta " + nf(cedEq * (1 - tax)) + " %" : "")), "pos") +
+      card("Cedole che incasserai", nf(cedoleTot) + " €" + dim(tq ? nCed + " cedol" + (nCed === 1 ? "a" : "e") + " da " + nf(cp) + " €" : "pro-rata") , "neutral") +
       card("Costo del premio (conto capitale)", nf(costPremio) + " % p.a." + (costPremio < 0 ? " — il prezzo che paghi per stare sopra par" : " — il premio ti torna in conto capitale"), costPremio < 0 ? "neg" : "pos");
     return;
   }
@@ -1482,8 +1513,10 @@ function calcBond() {
     return void ($("oOut").innerHTML = err("In modalita' cedola compila il prezzo (> 0)."));
   const capInv = $("oPrezzoTipo").value === "pct" ? nom * pz / 100 : pz;
   const rend = cedEur / capInv * 100;
+  const taxC = (+$("oTax").value || 0) / 100;
   $("oOut").innerHTML =
-    card("<b>Cedola</b>", "<b>" + nf(rend) + " %</b> <span style='font-weight:400;font-size:11px;opacity:.7'>resa immediata = cedola annua ÷ prezzo</span>", "neutral") +
+    card("<b>Cedola</b>", "<b>" + nf(rend) + " %</b> <span style='font-weight:400;font-size:11px;opacity:.7'>resa immediata lorda = cedola annua ÷ prezzo</span>", "neutral") +
+    (taxC > 0 ? card("Cedola netta", nf(rend * (1 - taxC)) + " % <span style='font-weight:400;font-size:11px;opacity:.7'>al " + nf(taxC * 100, 1) + "%</span>", "pos") : "") +
     card("Cedola incassata all'anno", nf(cedEur) + " €") +
     card("Capitale investito (prezzo)", nf(capInv) + " €");
 }
@@ -1695,7 +1728,7 @@ function calcIVS() {
   const gg = Math.round((new Date(scad + "T00:00:00") - oggi) / 864e5);
   if (gg <= 0)
     return void ($("ivOut").innerHTML = err("La scadenza deve essere nel futuro."));
-  const r = 0.02, q = 0, T = gg / 365;      // fissi internamente: per la IV contano poco
+  const r = gR(), q = gQ(), T = gg / 365;   // dalla barra mercato
   const F = gFx();
   if (isNaN(F)) return void ($("ivOut").innerHTML = fxErr());
   const perAzione = prem * P * F;           // valore per 1 azione nella valuta del sottostante (premio € × parità × cambio)
@@ -1703,11 +1736,11 @@ function calcIVS() {
   if (perAzione - intrin <= 0)
     return void ($("ivOut").innerHTML = err("Il premio è tutto intrinseco (o sotto): zero valore tempo → IV non stimabile."));
   const bsV = iv => {
-    const d1 = (Math.log(S / K) + (r + 0.5 * iv * iv) * T) / (iv * Math.sqrt(T));
+    const d1 = (Math.log(S / K) + (r - q + 0.5 * iv * iv) * T) / (iv * Math.sqrt(T));
     const d2 = d1 - iv * Math.sqrt(T);
     return tipo === "call"
-      ? S * ncdf(d1) - K * Math.exp(-r * T) * ncdf(d2)
-      : K * Math.exp(-r * T) * ncdf(-d2) - S * ncdf(-d1);
+      ? S * Math.exp(-q * T) * ncdf(d1) - K * Math.exp(-r * T) * ncdf(d2)
+      : K * Math.exp(-r * T) * ncdf(-d2) - S * Math.exp(-q * T) * ncdf(-d1);
   };
   if (bsV(3) < perAzione)
     return void ($("ivOut").innerHTML = err("Premio troppo alto anche con volatilità 300%: ricontrolla S, K, parità o premio."));
@@ -1717,8 +1750,8 @@ function calcIVS() {
     (bsV(mid) < perAzione) ? lo = mid : hi = mid;
   }
   const iv = (lo + hi) / 2;
-  const d1 = (Math.log(S / K) + (r + 0.5 * iv * iv) * T) / (iv * Math.sqrt(T));
-  const delta = tipo === "call" ? ncdf(d1) : -ncdf(-d1);
+  const d1 = (Math.log(S / K) + (r - q + 0.5 * iv * iv) * T) / (iv * Math.sqrt(T));
+  const delta = tipo === "call" ? Math.exp(-q * T) * ncdf(d1) : -Math.exp(-q * T) * ncdf(-d1);
   const dim = t => ' <span style="font-weight:400;font-size:11px;opacity:.7">' + t + "</span>";
   let out = fxCard(F) +
     card("<b>IV IMPLICITA</b>", "<b>" + nf(iv * 100) + " %</b> p.a." + dim("la paura che fa pagare chi ti vende la protezione"), "pos") +
@@ -1765,11 +1798,12 @@ function calcCosto() {
 }
 
 /* ---------- Confronto Bond (duration e convessità) ---------- */
-function cbondMetrics(c, n, y) {
-  const yd = y / 100;
+function cbondMetrics(c, n, y, f) {   // n anni anche decimali, f cedole all'anno; sconto annuo effettivo
+  const yd = y / 100; f = f || 1;
   let P = 0, wt = 0, ct = 0;
-  for (let t = 1; t <= n; t++) {
-    const cf = t < n ? c : c + 100;
+  for (let k = 0; n - k / f > 1e-9; k++) {
+    const t = n - k / f;
+    const cf = c / f + (k === 0 ? 100 : 0);
     const pv = cf / Math.pow(1 + yd, t);
     P += pv; wt += t * pv; ct += t * (t + 1) * pv;
   }
@@ -1777,34 +1811,34 @@ function cbondMetrics(c, n, y) {
   return { P: P, D: D, Ds: D / (1 + yd), C: ct / (P * (1 + yd) * (1 + yd)) };
 }
 /* YTM dal prezzo tel quel: bisezione su cbondMetrics (prezzo scende al salire di y) */
-function cbondYtm(c, n, price) {
+function cbondYtm(c, n, price, f) {
   let lo = -0.99, hi = 100; // y% tra −0,99 e 100: prezzo sempre positivo
   for (let i = 0; i < 90; i++) {
     const mid = (lo + hi) / 2;
-    const p = cbondMetrics(c, n, mid).P;
+    const p = cbondMetrics(c, n, mid, f).P;
     if (Math.abs(p - price) < 1e-7) return mid;
     if (p > price) lo = mid; else hi = mid;
   }
   return (lo + hi) / 2;
 }
 function calcCbond() {
-  const ca = num("cbAc"), na = num("cbAn"), ya = num("cbAy"), pa = num("cbAp");
-  const cb = num("cbBc"), nb = num("cbBn"), yb = num("cbBy"), pb = num("cbBp");
+  const ca = num("cbAc"), na = num("cbAn"), ya = num("cbAy"), pa = num("cbAp"), fa = +$("cbAf").value || 1;
+  const cb = num("cbBc"), nb = num("cbBn"), yb = num("cbBy"), pb = num("cbBp"), fb = +$("cbBf").value || 1;
   let sh = num("cbShock");
   const out = $("cbOut");
-  const dati = (nome, c, n, y, p) => {
-    if (isNaN(c) || isNaN(n) || n < 1 || n > 60)
-      return { err: "Bond " + nome + ": compila cedola e anni (1-60)" };
+  const dati = (nome, c, n, y, p, f) => {
+    if (isNaN(c) || isNaN(n) || n <= 0 || n > 60)
+      return { err: "Bond " + nome + ": compila cedola e anni (da 0,1 a 60, anche decimali)" };
     if (!isNaN(p) && p > 0) {          // prezzo tel quel vince: ricava la YTM
       if (p < 1e-6) return { err: "Bond " + nome + ": prezzo tel quel non valido" };
-      const y = cbondYtm(c, n, p);
+      const y = cbondYtm(c, n, p, f);
       if (y <= -0.99 || y >= 99.9) return { err: "Bond " + nome + ": dal prezzo " + nf(p, 2) + " non esce una YTM sensata — ricontrolla prezzo, cedola e anni" };
-      return { m: cbondMetrics(c, n, y), y: y, yDaPrezzo: true };
+      return { m: cbondMetrics(c, n, y, f), y: y, yDaPrezzo: true };
     }
     if (isNaN(y)) return { err: "Bond " + nome + ": serve il rendimento % oppure il prezzo tel quel" };
-    return { m: cbondMetrics(c, n, y), y: y, yDaPrezzo: false };
+    return { m: cbondMetrics(c, n, y, f), y: y, yDaPrezzo: false };
   };
-  const A = dati("A", ca, na, ya, pa), B = dati("B", cb, nb, yb, pb);
+  const A = dati("A", ca, na, ya, pa, fa), B = dati("B", cb, nb, yb, pb, fb);
   if (A.err || B.err) { out.innerHTML = err((A.err || "") + (A.err && B.err ? " · " : "") + (B.err || "")); return; }
   if (isNaN(sh)) sh = 1;
   const dy = sh / 100;
@@ -1850,14 +1884,15 @@ function ncdf(x) {
   const y = 1 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
   return 0.5 * (1 + sgn * y);
 }
-function bsPut(S, K, T, iv, r) {
-  const d1 = (Math.log(S / K) + (r + 0.5 * iv * iv) * T) / (iv * Math.sqrt(T));
+function bsPut(S, K, T, iv, r, q) {        // Black-Scholes put europea con dividendo continuo q
+  q = q || 0;
+  const d1 = (Math.log(S / K) + (r - q + 0.5 * iv * iv) * T) / (iv * Math.sqrt(T));
   const d2 = d1 - iv * Math.sqrt(T);
-  return K * Math.exp(-r * T) * ncdf(-d2) - S * ncdf(-d1);
+  return K * Math.exp(-r * T) * ncdf(-d2) - S * Math.exp(-q * T) * ncdf(-d1);
 }
 
 function calcScala() {
-  const S = num("scS");
+  const S = num("sgS");
   if (isNaN(S) || S <= 0)
     return void ($("scOut").innerHTML = err("Inserisci il prezzo attuale del sottostante (> 0)."));
   const d = S >= 200 ? 0 : S >= 20 ? 1 : 2;
@@ -1877,15 +1912,16 @@ function calcScala() {
 /* ---------- 15b. Scala Sigma: media tra ladder fissa e strike sigma ---------- */
 function calcSigs() {
   const S = num("sgS"), iv = num("sgIv"), hv = num("sgHv"), mesi = num("sgMesi"), w = num("sgW");
+  calcScala();                                            // i gradini fissi bastano con S
   if ([S, iv, mesi].some(isNaN) || S <= 0 || iv <= 0 || mesi <= 0)
-    return void ($("sgOut").innerHTML = err("Compila S, IV (%) e mesi a scadenza (tutti > 0)."));
+    return void ($("sgOut").innerHTML = err(isNaN(S) || S <= 0 ? "Inserisci il prezzo S." : "Per la scala σ servono anche IV (%) e mesi a scadenza; i gradini fissi sono qui sotto."));
   const hw = (isNaN(hv) || hv <= 0) ? iv : hv;          // se manca l'HV usa l'IV
   const ww = (isNaN(w) ? 50 : w) / 100;                 // peso IV di default 50%
   const sg = (ww * iv + (1 - ww) * hw) / 100;           // sigma blend IV <-> HV
-  const T = mesi / 12, r = 0.03, sqT = sg * Math.sqrt(T);
+  const T = mesi / 12, r = gR(), q = gQ(), sqT = sg * Math.sqrt(T);
   const fissi = [-10, -15, -20, -25, -30];
   const d = S >= 200 ? 0 : S >= 20 ? 1 : 2;
-  const vega = function(k) { const e = 0.01; return (bsPut(S, k, T, sg + e, r) - bsPut(S, k, T, sg, r)) / e / S * 100; };
+  const vega = function(k) { const e = 0.01; return (bsPut(S, k, T, sg + e, r, q) - bsPut(S, k, T, sg, r, q)) / e / S * 100; };
   let out = card("σ blend", nf(sg * 100, 1) + "%   (IV " + nf(iv, 1) + "% · HV " + nf(hw, 1) + "% · peso IV " + nf(ww * 100, 0) + "%)", "neutral");
   out += '<table class="scen"><tr><th>Gradino</th><th>Fisso</th><th>σ</th><th>Media</th><th>Premio %<br>f · σ · m</th><th>Vega m</th></tr>';
   let totF = 0, totS = 0, totM = 0;
@@ -1896,9 +1932,9 @@ function calcSigs() {
     const kS = Math.max(S * Math.exp(-n * sqT), 0.70 * S);   // floor -30%
     const kM = (kF + kS) / 2;
     ksM.push(kM);
-    const pF = bsPut(S, kF, T, sg, r) / S * 100;
-    const pS = bsPut(S, kS, T, sg, r) / S * 100;
-    const pM = bsPut(S, kM, T, sg, r) / S * 100;
+    const pF = bsPut(S, kF, T, sg, r, q) / S * 100;
+    const pS = bsPut(S, kS, T, sg, r, q) / S * 100;
+    const pM = bsPut(S, kM, T, sg, r, q) / S * 100;
     totF += pF; totS += pS; totM += pM;
     out += "<tr><td>−" + n + "σ (" + f + "%)</td><td>" + nf(kF, d) + "</td><td>" + nf(kS, d) + "</td><td><b>" + nf(kM, d) + "</b></td><td>" + "f " + nf(pF, 2) + "<br>σ " + nf(pS, 2) + "<br><b>m " + nf(pM, 2) + "</b></td><td>" + nf(vega(kM), 2) + "</td></tr>";
   });
@@ -1934,7 +1970,7 @@ function tkOggi() {
 function tkF(leg) { return leg.usd ? gFx() : 1; }          // put su indice in $ con CW non quanto: valuta → €
 function tkVal(leg, S, dataISO) {                              // valore teorico in € per 1 sottostante
   var gg = tkGG(dataISO, leg.scad);
-  var v = gg <= 0 ? Math.max(leg.k - S, 0) : bsPut(S, leg.k, gg / 365, leg.iv / 100, 0.02);
+  var v = gg <= 0 ? Math.max(leg.k - S, 0) : bsPut(S, leg.k, gg / 365, leg.iv / 100, gR(), gQ());
   return v / tkF(leg);
 }
 function tkFlip(id) {

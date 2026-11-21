@@ -17,19 +17,18 @@ Apri la pagina in Safari → Condividi → **Aggiungi alla schermata Home**.
 | | IV implicita | Volatilità implicita dal prezzo del CW (Black-Scholes inverso) |
 | | Costo annuo | Costo della protezione in % annua del nozionale |
 | Coperture | Hedge | Quante put comprare per un capitale; delta-matching |
-| | Scala | Gradini di strike da 0 a −30% |
-| | Scala Σ | Strike fissi (franchigia), strike sigma e la loro media, con premi teorici |
+| | Scala Σ | Strike fissi (franchigia), strike sigma e la loro media, premi teorici; gradini fissi da S a −30% |
 | | Tracker | Segue le put della scala: semaforo per il rolling |
-| | Ladder | Regola del cricchetto e strike invecchiati |
-| | Calendario | Quale trancia rinnovare e quando |
+| | Ladder | Regola del cricchetto, strike invecchiati e calendario dei rinnovi |
 | | Riacquisto | Quote per ripristinare un blocco dopo una perdita |
-| Obbligazioni | Obbligazioni | Cedola, prezzo massimo, YTM composta e lineare |
-| | Confronto Bond | Duration, convessità, stress dei tassi |
+| Obbligazioni | Obbligazioni | Cedola, prezzo massimo, YTM composta lorda e netta (cedola annuale o semestrale) |
+| | Confronto Bond | Duration, convessità, stress dei tassi (anni decimali, cedola annuale o semestrale) |
 | | Bond FX | Rendimento in € di un bond in valuta |
 | | Bond TRY | Tracker giornaliero di un bond in lire turche |
 
-## Barra valuta
-Nei tab dei CW c'è una barra comune: **sottostante in € o in $**, **CW quanto sì/no** e **cambio EUR/USD**.
+## Barra mercato
+Nei tab dei CW c'è una barra comune, richiudibile in una riga: **sottostante in € o in $**, **CW quanto sì/no**, **cambio EUR/USD**,
+**tasso** e **dividendo dell'indice** (usati da Black-Scholes in IV implicita, Tracker e Scala Σ).
 Con sottostante in dollari e CW non quanto, il premio in euro viene convertito (premio € × cambio) prima di confrontarlo con l'indice,
 e i rimborsi in dollari vengono riportati in euro (÷ cambio).
 
@@ -40,5 +39,6 @@ Tracker, Bond TRY e impostazioni restano nel browser del dispositivo (`localStor
 - `index.html` — l'app
 - `manifest.webmanifest`, `icons/` — installazione come app
 - `sw.js` — funzionamento offline (prima la rete, poi la copia salvata)
+- `tests/test.html` — test automatici: aprila nel browser dopo ogni modifica (deve dire "0 fallite")
 
 Strumento di calcolo: non esegue ordini e non costituisce consulenza finanziaria.
