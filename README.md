@@ -18,7 +18,7 @@ Apri la pagina in Safari → Condividi → **Aggiungi alla schermata Home**.
 | | Costo annuo | Costo della protezione in % annua del nozionale |
 | Coperture | Hedge | Quante put comprare per un capitale; delta-matching |
 | | Scala | Gradini di strike da 0 a −30% |
-| | Scala Σ | Strike fissi (franchigia), strike sigma e la loro media, con premi teorici e listino reale |
+| | Scala Σ | Strike fissi (franchigia), strike sigma e la loro media, con premi teorici |
 | | Tracker | Segue le put della scala: semaforo per il rolling |
 | | Ladder | Regola del cricchetto e strike invecchiati |
 | | Calendario | Quale trancia rinnovare e quando |

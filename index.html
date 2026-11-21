@@ -789,7 +789,7 @@ function card(k, v, cls) {
 function err(msg) { return '<div class="card"><span class="k" style="color:#f87171">' + msg + '</span></div>'; }
 
 /* ---------- Navigazione a gruppi ---------- */
-const FX_TABS = ["payoff", "strat", "conf", "ivs", "costo", "hedge", "sigs", "track"];
+const FX_TABS = ["payoff", "strat", "conf", "ivs", "costo", "hedge", "track"];
 function lsGet(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }
 function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 function showTab(tab) {
@@ -1875,46 +1875,6 @@ function calcScala() {
 }
 
 /* ---------- 15b. Scala Sigma: media tra ladder fissa e strike sigma ---------- */
-/* Listini reali di riferimento: servono a dare un ordine di grandezza concreto ai premi teorici.
-   Ogni listino porta la sua data: dopo 7 giorni la tab avvisa che i prezzi sono vecchi. */
-const LISTINI = {
-  NDX: { data: "2026-11-16", nome: "CW put NDX · Directa", multiplo: 0.001, righe: null },
-  SPX: { data: "2026-11-17", nome: "CW put S&P 500 · SG",  multiplo: 0.001, righe: null }
-};
-const LISTINO_NDX = [ // CW put NDX SeDeX, Directa SIM 16/11/2026 (S=27600, parita 0.001); ask null = sospeso
-  { k: 26200, em: "Vontobel", sc: "2027-01-15", ask: 0.653 },
-  { k: 26000, em: "SGE",     sc: "2027-03-19", ask: 0.925 },
-  { k: 25500, em: "SGE",     sc: "2027-06-17", ask: 1.108 },
-  { k: 25400, em: "Vontobel", sc: "2027-01-15", ask: 0.484 },
-  { k: 24800, em: "Vontobel", sc: "2027-01-15", ask: 0.385 },
-  { k: 24600, em: "Vontobel", sc: "2027-01-15", ask: 0.365 },
-  { k: 24000, em: "SGE",     sc: "2027-12-17", ask: 1.185 },
-  { k: 23500, em: "SGE",     sc: "2027-12-17", ask: 1.091 },
-  { k: 23200, em: "Vontobel", sc: "2027-01-15", ask: null },
-  { k: 21500, em: "Vontobel", sc: "2027-03-19", ask: 0.2585 },
-  { k: 21000, em: "Vontobel", sc: "2027-09-19", ask: 0.589 },
-  { k: 19000, em: "Vontobel", sc: "2027-06-17", ask: 0.2855 }
-];
-const LISTINO_SPX = [ // CW put S&P 500, SG export 17/11/2026 (S=7402, parita 1000:1=0.001); ask = minimo per strike/scadenza
-  { k: 5600, sc: "2026-12-18", ask: 0.0100 }, { k: 5800, sc: "2026-12-18", ask: 0.0120 },
-  { k: 6000, sc: "2026-12-18", ask: 0.0145 }, { k: 6200, sc: "2026-12-18", ask: 0.0175 },
-  { k: 6400, sc: "2026-12-18", ask: 0.0225 }, { k: 6600, sc: "2026-12-18", ask: 0.0295 },
-  { k: 6800, sc: "2026-12-18", ask: 0.0405 }, { k: 7200, sc: "2026-12-18", ask: 0.0895 },
-  { k: 6200, sc: "2027-03-19", ask: 0.0665 }, { k: 6400, sc: "2027-03-19", ask: 0.0815 },
-  { k: 6800, sc: "2027-03-19", ask: 0.1235 }, { k: 7000, sc: "2027-03-19", ask: 0.1545 },
-  { k: 7400, sc: "2027-03-19", ask: 0.2475 },
-  { k: 6000, sc: "2027-06-17", ask: 0.0940 }, { k: 6600, sc: "2027-06-17", ask: 0.1555 },
-  { k: 7000, sc: "2027-06-17", ask: 0.2210 }, { k: 7200, sc: "2027-06-17", ask: 0.2650 },
-  { k: 7400, sc: "2027-06-17", ask: 0.3180 },
-  { k: 6400, sc: "2027-09-17", ask: 0.1735 }, { k: 6800, sc: "2027-09-17", ask: 0.2345 },
-  { k: 7000, sc: "2027-09-17", ask: 0.2735 }, { k: 7200, sc: "2027-09-17", ask: 0.3180 },
-  { k: 7400, sc: "2027-09-17", ask: 0.3700 },
-  { k: 6000, sc: "2027-12-17", ask: 0.1600 }, { k: 6400, sc: "2027-12-17", ask: 0.2095 },
-  { k: 6600, sc: "2027-12-17", ask: 0.2400 }, { k: 6800, sc: "2027-12-17", ask: 0.2755 },
-  { k: 7000, sc: "2027-12-17", ask: 0.3150 }, { k: 7200, sc: "2027-12-17", ask: 0.3610 },
-  { k: 7400, sc: "2027-12-17", ask: 0.4130 }
-];
-LISTINI.NDX.righe = LISTINO_NDX; LISTINI.SPX.righe = LISTINO_SPX;
 function calcSigs() {
   const S = num("sgS"), iv = num("sgIv"), hv = num("sgHv"), mesi = num("sgMesi"), w = num("sgW");
   if ([S, iv, mesi].some(isNaN) || S <= 0 || iv <= 0 || mesi <= 0)
@@ -1927,12 +1887,7 @@ function calcSigs() {
   const d = S >= 200 ? 0 : S >= 20 ? 1 : 2;
   const vega = function(k) { const e = 0.01; return (bsPut(S, k, T, sg + e, r) - bsPut(S, k, T, sg, r)) / e / S * 100; };
   let out = card("σ blend", nf(sg * 100, 1) + "%   (IV " + nf(iv, 1) + "% · HV " + nf(hw, 1) + "% · peso IV " + nf(ww * 100, 0) + "%)", "neutral");
-  const L = S >= 15000 ? LISTINI.NDX : LISTINI.SPX;      // NDX ~ 20-30 mila punti, S&P ~ 5-8 mila
-  const lst = L.righe;
-  const lstName = (S >= 15000 ? "NDX " : "SPX ") + L.data.slice(8, 10) + "/" + L.data.slice(5, 7);
-  const F = gFx();
-  const etaGG = Math.round((new Date(tkOggi() + "T00:00:00") - new Date(L.data + "T00:00:00")) / 864e5);
-  out += '<table class="scen"><tr><th>Gradino</th><th>Fisso</th><th>σ</th><th>Media</th><th>Premio %<br>f · σ · m</th><th>Vega m</th><th>CW reale ' + lstName + '<br>K · prem%</th></tr>';
+  out += '<table class="scen"><tr><th>Gradino</th><th>Fisso</th><th>σ</th><th>Media</th><th>Premio %<br>f · σ · m</th><th>Vega m</th></tr>';
   let totF = 0, totS = 0, totM = 0;
   const ksM = [];
   fissi.forEach(function(f, i) {
@@ -1945,14 +1900,7 @@ function calcSigs() {
     const pS = bsPut(S, kS, T, sg, r) / S * 100;
     const pM = bsPut(S, kM, T, sg, r) / S * 100;
     totF += pF; totS += pS; totM += pM;
-    let best = null, bd = 1e18;
-    lst.forEach(function(cw) {
-      if (cw.ask == null) return;
-      const dd = Math.abs(cw.k - kM);
-      if (dd < bd) { bd = dd; best = cw; }
-    });
-    const cwTxt = best && !isNaN(F) ? nf(best.k, d) + " · " + nf(best.ask * F / (L.multiplo * S) * 100, 2) + "%" : "—";
-    out += "<tr><td>−" + n + "σ (" + f + "%)</td><td>" + nf(kF, d) + "</td><td>" + nf(kS, d) + "</td><td><b>" + nf(kM, d) + "</b></td><td>" + "f " + nf(pF, 2) + "<br>σ " + nf(pS, 2) + "<br><b>m " + nf(pM, 2) + "</b></td><td>" + nf(vega(kM), 2) + "</td><td>" + cwTxt + "</td></tr>";
+    out += "<tr><td>−" + n + "σ (" + f + "%)</td><td>" + nf(kF, d) + "</td><td>" + nf(kS, d) + "</td><td><b>" + nf(kM, d) + "</b></td><td>" + "f " + nf(pF, 2) + "<br>σ " + nf(pS, 2) + "<br><b>m " + nf(pM, 2) + "</b></td><td>" + nf(vega(kM), 2) + "</td></tr>";
   });
   out += "</table>";
   out += card("Somma premi (% su S)", nf(totF, 2) + "% fisso · " + nf(totS, 2) + "% sigma · <b>" + nf(totM, 2) + "% media</b>", "neutral");
@@ -1963,10 +1911,6 @@ function calcSigs() {
     scen += (scen ? " · " : "") + x[0] + "%: <b>" + nf(pay, 1) + "%</b>";
   });
   out += card("Payout scala MEDIA negli scenari (su S)", scen, "neutral");
-  out += card("Listino reale usato", L.nome + " del " + L.data.split("-").reverse().join("/") + " · " + etaGG + " giorni fa" +
-    (isNaN(F) ? " · <b>imposta il cambio nella barra valuta</b>" : F === 1 ? " · premi senza conversione (quanto o €)" : " · premi convertiti a 1 € = " + nf(F, 4) + " $"),
-    etaGG > 7 ? "neg" : "neutral");
-  if (etaGG > 7) out += card("⚠️ Listino vecchio", "i premi reali sono di " + etaGG + " giorni fa: usali solo come ordine di grandezza. Per decidere guarda il listino di oggi (o chiedi a Claude di aggiornarlo).", "neg");
   $("sgOut").innerHTML = out;
 }
 
