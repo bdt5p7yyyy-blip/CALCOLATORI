@@ -143,6 +143,20 @@
   #track .leg button.del { background: rgba(248,113,113,0.25); color: #f87171; }
   .card.cardHero .v { font-size: 20px; font-weight: 800; }
   #scenTable table.scen td, #scenTable table.scen th { font-size: 15px; padding: 10px 8px; }
+  /* Strategia: niente overflow su telefono */
+  #strat .results > * { min-width: 0; }
+  #strat .card { flex-direction: column; align-items: flex-start; gap: 4px; }
+  #strat .card .v { white-space: normal; overflow-wrap: anywhere; text-align: left; font-size: 17px; }
+  #scenTable { max-width: 100%; }
+  #scenTable table.scen { table-layout: fixed; width: 100%; }
+  #scenTable table.scen th { font-size: 11px; white-space: normal; line-height: 1.25; }
+  #scenTable table.scen td, #scenTable table.scen th { padding: 8px 3px; overflow-wrap: anywhere; }
+  #scenTable table.scen td { font-size: 12px; white-space: nowrap; overflow-wrap: normal; }
+  #scenTable table.scen tr.beRow td { white-space: normal; }
+  #scenTable table.scen th:nth-child(1) { width: 13%; }
+  #scenTable table.scen th:nth-child(2) { width: 19%; }
+  #scenTable table.scen tr.beRow td { width: auto; }
+  @media (min-width: 700px) { #scenTable table.scen td { font-size: 15px; } #scenTable table.scen th { font-size: 12px; } }
   .note {
     margin-top: 12px; font-size: 13px; color: #94a3b8; line-height: 1.6;
     background: #0f172a; border-left: 3px solid #334155; padding: 8px 10px; border-radius: 0 8px 8px 0;
@@ -1037,10 +1051,11 @@ function buildScenTable(S0, l1, l2, tot, bes) {
     const S = S0 * (1 + v / 100);
     const p1 = legPnl(l1, S), p2 = legPnl(l2, S), t = tot(S);
     const cl = t > 0 ? "pos" : t < 0 ? "neg" : "neutral";
-    items.push({ v: v, html: '<tr><td>' + (v > 0 ? "+" : "") + v + '%</td><td>' + nf(S, dec) + '</td>' +
-      '<td class="' + (p1 >= 0 ? "pos" : "neg") + '">' + (p1 >= 0 ? "+" : "") + nf(p1) + '</td>' +
-      '<td class="' + (p2 >= 0 ? "pos" : "neg") + '">' + (p2 >= 0 ? "+" : "") + nf(p2) + '</td>' +
-      '<td class="' + cl + '"><b>' + (t >= 0 ? "+" : "") + nf(t) + '</b></td></tr>' });
+    const nm = x => nf(x, Math.abs(x) >= 1000 ? 0 : 2);
+    items.push({ v: v, html: '<tr><td>' + (v > 0 ? "+" : "") + v + '%</td><td>' + nf(S, S >= 1000 ? 0 : dec) + '</td>' +
+      '<td class="' + (p1 >= 0 ? "pos" : "neg") + '">' + (p1 >= 0 ? "+" : "") + nm(p1) + '</td>' +
+      '<td class="' + (p2 >= 0 ? "pos" : "neg") + '">' + (p2 >= 0 ? "+" : "") + nm(p2) + '</td>' +
+      '<td class="' + cl + '"><b>' + (t >= 0 ? "+" : "") + nm(t) + '</b></td></tr>' });
   });
   (bes || []).forEach(b => {
     const vBe = (b / S0 - 1) * 100;
@@ -1048,7 +1063,7 @@ function buildScenTable(S0, l1, l2, tot, bes) {
       (vBe > 0 ? "+" : "") + nf(vBe, 1) + '% · S = ' + nf(b, dec) + ' · P/L = 0</td></tr>' });
   });
   items.sort((a, b) => b.v - a.v);
-  let html = '<table class="scen"><tr><th>Variazione</th><th>S a scadenza</th><th>Gamba 1</th><th>Gamba 2</th><th>P/L totale</th></tr>' +
+  let html = '<table class="scen"><tr><th>Var.</th><th>S a scad.</th><th>Gamba 1 €</th><th>Gamba 2 €</th><th>Totale €</th></tr>' +
     items.map(it => it.html).join("") + '</table>';
   let el = $("scenTable");
   if (!el) { el = document.createElement("div"); el.id = "scenTable"; $("sOut").after(el); }
